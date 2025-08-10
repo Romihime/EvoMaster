@@ -704,7 +704,7 @@ object RestActionBuilderV3 {
             body
         }
 
-        val name = "body"
+        var name = "body"
         val description = operation.description ?: null
 
         val bodies = resolvedBody.content?.filter {
@@ -743,7 +743,12 @@ object RestActionBuilderV3 {
             listOf()
         }
 
-        var gene = getGene("body", obj.schema, schemaHolder,currentSchema, referenceClassDef = null, options = options, messages = messages, examples = examples)
+        val deref = obj.schema.`$ref`?.let { ref -> val name = ref.substringAfterLast("/")
+            schemaHolder.main.schemaParsed.components.schemas[name] } ?: obj.schema
+
+        name = deref?.xml?.name ?: deref?.`$ref`?.substringAfterLast("/") ?: "body"
+
+        var gene = getGene(name, obj.schema, schemaHolder,currentSchema, referenceClassDef = null, options = options, messages = messages, examples = examples)
 
 
         if (resolvedBody.required != true && gene !is OptionalGene) {

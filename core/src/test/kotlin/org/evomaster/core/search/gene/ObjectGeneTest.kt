@@ -22,7 +22,7 @@ internal class ObjectGeneTest {
         val childElement = ObjectGene("childElement", listOf())
         val parentElement = ObjectGene("parentElement", listOf(childElement))
         val xmlString = parentElement.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        Assertions.assertEquals("<parentElement><childElement></childElement></parentElement>", xmlString)
+        Assertions.assertEquals("<parentElement><childElement><childElement></childElement></childElement></parentElement>", xmlString)
     }
 
     @Test
@@ -31,35 +31,35 @@ internal class ObjectGeneTest {
         val level1 = ObjectGene("level1", listOf(level2))
         val level0 = ObjectGene("level0", listOf(level1))
         val xmlString = level0.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        Assertions.assertEquals("<level0><level1><level2></level2></level1></level0>", xmlString)
+        Assertions.assertEquals("<level0><level1><level1><level2><level2></level2></level2></level1></level1></level0>", xmlString)
     }
 
     @Test
     fun testIntegerGene() {
         val gene = ObjectGene("anElement", listOf(IntegerGene("integerValue", value = 0)))
         val actual = gene.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        Assertions.assertEquals("<anElement>0</anElement>", actual)
+        Assertions.assertEquals("<anElement><integerValue>0</integerValue></anElement>", actual)
     }
 
     @Test
     fun testBooleanGene() {
         val gene = ObjectGene("anElement", listOf(BooleanGene("booleanValue", value = false)))
         val actual = gene.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        Assertions.assertEquals("<anElement>false</anElement>", actual)
+        Assertions.assertEquals("<anElement><booleanValue>false</booleanValue></anElement>", actual)
     }
 
     @Test
     fun testStringGene() {
         val gene = ObjectGene("anElement", listOf(StringGene("stringValue", value = "Hello World")))
         val actual = gene.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        Assertions.assertEquals("<anElement>Hello World</anElement>", actual)
+        Assertions.assertEquals("<anElement><stringValue>Hello World</stringValue></anElement>", actual)
     }
 
     @Test
     fun testEscapedStringGene() {
         val gene = ObjectGene("anElement", listOf(StringGene("stringValue", value = "<xml>This should be escaped</xml>")))
         val actual = gene.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        Assertions.assertEquals("<anElement>&lt;xml&gt;This should be escaped&lt;/xml&gt;</anElement>", actual)
+        Assertions.assertEquals("<anElement><stringValue>&lt;xml&gt;This should be escaped&lt;/xml&gt;</stringValue></anElement>", actual)
     }
 
     @Test
@@ -68,7 +68,7 @@ internal class ObjectGeneTest {
         val child1 = ObjectGene("child", listOf())
         val gene = ObjectGene("parent", listOf(child0, child1))
         val actual = gene.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        assertEquals("<parent><child></child><child></child></parent>", actual)
+        assertEquals("<parent><child><child></child></child><child><child></child></child></parent>", actual)
     }
 
 
