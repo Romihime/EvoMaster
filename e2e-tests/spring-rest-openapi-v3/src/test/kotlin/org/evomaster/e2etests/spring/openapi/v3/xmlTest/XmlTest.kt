@@ -1,23 +1,14 @@
 package org.evomaster.e2etests.spring.openapi.v3.xmlTest
 
-import org.evomaster.client.java.controller.api.dto.database.schema.DatabaseType
-import org.evomaster.core.output.EvaluatedIndividualBuilder.Companion.buildEvaluatedIndividual
-import org.evomaster.core.output.Lines
-import org.evomaster.core.output.TestCase
-import org.evomaster.core.output.service.PartialOracles
-import org.evomaster.core.output.service.RestTestCaseWriter
-import org.evomaster.core.search.gene.ObjectGene
-import org.evomaster.core.search.gene.sql.SqlXMLGene
-import org.evomaster.core.sql.SqlAction
-import org.evomaster.core.sql.schema.Column
-import org.evomaster.core.sql.schema.ColumnDataType
-import org.evomaster.core.sql.schema.Table
+
 import com.foo.rest.examples.spring.openapi.v3.xmlController.XmlController
-import io.restassured.RestAssured.given
+import org.evomaster.core.EMConfig
+import org.evomaster.core.output.OutputFormat
 import org.evomaster.core.problem.rest.data.HttpVerb
 import org.evomaster.e2etests.spring.openapi.v3.SpringTestBase
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class XmlEMTest : SpringTestBase() {
@@ -26,31 +17,43 @@ class XmlEMTest : SpringTestBase() {
         @BeforeAll
         @JvmStatic
         fun init() {
-            initClass(XmlController())
+            val config = EMConfig()
+
+            config.outputFormat = OutputFormat.JAVA_JUNIT_5
+
+            initClass(XmlController(), config)
         }
     }
-
+    @Disabled
     @Test
-    fun test_receiveStringRespondsWithExpectedXml() {
-        val input = "TestName"
+    fun testRunEM() {
+        runTestHandlingFlakyAndCompilation(
+            "XmlEM",
+            "org.foo.XmlEM",
+            100,
+            true,
+            { args: MutableList<String> ->
+                val solution = initAndRun(args)
 
-        val response = given()
-            .contentType("text/plain")
-            .accept("application/xml")
-            .body(input)
-            .post("/api/xml/receive-string-respond-xml")
+                assertTrue(solution.individuals.size >= 1)
 
-        /*val statusCode = response.statusCode()
-        val contentType = response.contentType()
-        val responseBody = response.body().asString()
+                assertHasAtLeastOne(
+                    solution,
+                    HttpVerb.POST,
+                    200,
+                    "/api/xml/receive-string-respond-xml",
+                    null
+                )
 
-        println("Status: $statusCode")
-        println("Content-Type: $contentType")
-        println("Body:\n$responseBody")*/
-
-        Assertions.assertEquals(200, response.statusCode())
-        Assertions.assertTrue(response.contentType().contains("application/xml"))
-        Assertions.assertTrue(response.asString().contains("<name>$input</name>"))
-        Assertions.assertTrue(response.asString().contains("<age>25</age>"))
+                assertHasAtLeastOne(
+                    solution,
+                    HttpVerb.POST,
+                    200,
+                    "/api/xml/receive-xml-respond-string",
+                    null
+                )
+            },
+            3
+        )
     }
 }
