@@ -372,22 +372,98 @@ class ObjectGene(
 
         } else if (mode == GeneUtils.EscapeMode.XML) {
 
-            // TODO might have to handle here: <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-            /*
-                Note: this is a very basic support, which should not really depend
-                much on. Problem is that we would need to access to the XSD schema
-                to decide when fields should be represented with tags or attributes
-             */
+            fun escapeXml(s: String): String = s
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;")
 
-            buffer.append(openXml(name))
-            includedFields.forEach {
+            fun unescapeXml(s: String): String = s
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&quot;", "\"")
+                .replace("&apos;", "'")
+                .replace("&amp;", "&")
 
-                buffer.append(openXml(it.name))
-                buffer.append(it.getValueAsPrintableString(previousGenes, mode, targetFormat))
-                buffer.append(closeXml(it.name))
+            fun looksLikeElement(s: String): Boolean {
+                val t = s.trim()
+                return t.startsWith("<") && t.endsWith(">") && Regex("<[A-Za-z_]").containsMatchIn(t)
             }
-            buffer.append(closeXml(name))
 
+            fun looksWrappedAs(tag: String, s: String): Boolean {
+                val t = s.trim()
+                return t.startsWith("<$tag") && t.endsWith("</$tag>")
+            }
+
+            fun serializeXml(name: String, value: Any?): String {
+                if (value == null) return "<$name/>"
+
+                return when (value) {
+                    is String -> {
+                        var t = value.trim()
+
+                        if ((t.startsWith("\"") && t.endsWith("\"")) || (t.startsWith("'") && t.endsWith("'"))) {
+                            t = t.substring(1, t.length - 1)
+                        }
+
+                        if (t.contains("&lt;") || t.contains("&gt;") || t.contains("&amp;") || t.contains("&quot;") || t.contains("&apos;")) {
+                            t = unescapeXml(t)
+                        }
+
+                        if (t.startsWith("[") && t.endsWith("]")) {
+                            val content = t.substring(1, t.length - 1).trim()
+                            if (content.isEmpty()) return "<$name></$name>"
+
+                            val items = content.split(Regex("\\s*,\\s*(?=<)"))
+                            val joined = items.joinToString("") { it.trim() }
+                            return "<$name>$joined</$name>"
+                        }
+
+                        if (looksWrappedAs(name, t)) {
+                            return t
+                        }
+
+                        if (looksLikeElement(t)) {
+                            return "<$name>$t</$name>"
+                        }
+
+                        "<$name>${escapeXml(t)}</$name>"
+                    }
+
+                    is Number, is Boolean -> "<$name>${escapeXml(value.toString())}</$name>"
+
+                    is Collection<*> -> {
+                        if (value.isEmpty()) {
+                            return "<$name></$name>"
+                        }
+                        val inner = value.joinToString("") { serializeXml("${name}_item", it) }
+                        "<$name>$inner</$name>"
+                    }
+
+                    is Map<*, *> -> {
+                        val inner = value.entries.joinToString("") { (k, v) ->
+                            serializeXml(k.toString(), v)
+                        }
+                        "<$name>$inner</$name>"
+                    }
+
+                    else -> {
+                        val fields = value::class.java.declaredFields
+                        fields.forEach { it.isAccessible = true }
+                        val inner = fields.joinToString("") { f ->
+                            serializeXml(f.name, f.get(value))
+                        }
+                        "<$name>$inner</$name>"
+                    }
+                }
+            }
+
+            val xmlPayload = serializeXml(
+                name,
+                includedFields.associate { it.name to it.getValueAsPrintableString(previousGenes, mode, targetFormat) }
+            )
+            buffer.append(xmlPayload)
         } else if (mode == GeneUtils.EscapeMode.X_WWW_FORM_URLENCODED) {
 
             buffer.append(includedFields.map {
