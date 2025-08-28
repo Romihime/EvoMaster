@@ -408,7 +408,7 @@ class ObjectGene(
                         }
 
                         if (t.contains("&lt;") || t.contains("&gt;") || t.contains("&amp;") || t.contains("&quot;") || t.contains("&apos;")) {
-                            t = unescapeXml(t)
+                            return "<$name>$t</$name>"
                         }
 
                         if (t.startsWith("[") && t.endsWith("]")) {
@@ -425,7 +425,7 @@ class ObjectGene(
                         }
 
                         if (looksLikeElement(t)) {
-                            return "<$name>$t</$name>"
+                            return "<$name>${escapeXml(t)}</$name>"
                         }
 
                         "<$name>${escapeXml(t)}</$name>"
@@ -437,7 +437,12 @@ class ObjectGene(
                         if (value.isEmpty()) {
                             return "<$name></$name>"
                         }
-                        val inner = value.joinToString("") { serializeXml("${name}_item", it) }
+                        val inner = value.joinToString("") { v ->
+                            when (v) {
+                                is Pair<*, *> -> serializeXml(v.first.toString(), v.second)
+                                else -> serializeXml("${name}_item", v)
+                            }
+                        }
                         "<$name>$inner</$name>"
                     }
 
@@ -459,10 +464,10 @@ class ObjectGene(
                 }
             }
 
-            val xmlPayload = serializeXml(
-                name,
-                includedFields.associate { it.name to it.getValueAsPrintableString(previousGenes, mode, targetFormat) }
-            )
+            val children: List<Pair<String, Any?>> = includedFields.map { f ->
+                f.name to f.getValueAsPrintableString(previousGenes, mode, targetFormat)
+            }
+            val xmlPayload = serializeXml(name, children)
             buffer.append(xmlPayload)
         } else if (mode == GeneUtils.EscapeMode.X_WWW_FORM_URLENCODED) {
 
