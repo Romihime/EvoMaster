@@ -5,11 +5,17 @@ import org.evomaster.core.Lazy
 import org.evomaster.core.logging.LoggingUtil
 import org.evomaster.core.output.OutputFormat
 import org.evomaster.core.problem.graphql.GqlConst
+import org.evomaster.core.search.gene.collection.ArrayGene
 import org.evomaster.core.search.gene.collection.EnumGene
 import org.evomaster.core.search.gene.collection.PairGene
 import org.evomaster.core.search.gene.collection.TupleGene
 import org.evomaster.core.search.gene.wrapper.FlexibleGene
 import org.evomaster.core.search.gene.wrapper.OptionalGene
+import org.evomaster.core.search.gene.numeric.DoubleGene
+import org.evomaster.core.search.gene.numeric.FloatGene
+import org.evomaster.core.search.gene.numeric.IntegerGene
+import org.evomaster.core.search.gene.optional.FlexibleGene
+import org.evomaster.core.search.gene.optional.OptionalGene
 import org.evomaster.core.search.gene.placeholder.CycleObjectGene
 import org.evomaster.core.search.gene.root.CompositeConditionalFixedGene
 import org.evomaster.core.search.gene.string.StringGene
@@ -372,76 +378,39 @@ class ObjectGene(
 
         } else if (mode == GeneUtils.EscapeMode.XML) {
 
-            fun escapeXml(s: String): String = s
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&apos;")
-
-            fun unescapeXml(s: String): String = s
-                .replace("&lt;", "<")
-                .replace("&gt;", ">")
-                .replace("&quot;", "\"")
-                .replace("&apos;", "'")
-                .replace("&amp;", "&")
-
-            fun looksLikeElement(s: String): Boolean {
-                val t = s.trim()
-                return t.startsWith("<") && t.endsWith(">") && Regex("<[A-Za-z_]").containsMatchIn(t)
+            // Escape XML special characters, but avoid double-escaping existing entities
+            fun escapeXmlSafe(s: String): String {
+                return s
+                    .replace(Regex("(?<!&)&(?![a-zA-Z]+;)"), "&amp;") // replace & only if not already part of entity
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\"", "&quot;")
+                    .replace("'", "&apos;")
             }
-
-            fun looksWrappedAs(tag: String, s: String): Boolean {
+            // Detect if string looks like a full XML element
+            fun looksLikeXmlElement(s: String): Boolean {
                 val t = s.trim()
-                return t.startsWith("<$tag") && t.endsWith("</$tag>")
+                return t.startsWith("<") && t.endsWith(">")
             }
 
             fun serializeXml(name: String, value: Any?): String {
-                if (value == null) return "<$name/>"
+                if (value == null) return "<$name></$name>"
 
                 return when (value) {
                     is String -> {
-                        var t = value.trim()
-
-                        if ((t.startsWith("\"") && t.endsWith("\"")) || (t.startsWith("'") && t.endsWith("'"))) {
-                            t = t.substring(1, t.length - 1)
-                        }
-
-                        if (t.contains("&lt;") || t.contains("&gt;") || t.contains("&amp;") || t.contains("&quot;") || t.contains("&apos;")) {
-                            return "<$name>$t</$name>"
-                        }
-
-                        if (t.startsWith("[") && t.endsWith("]")) {
-                            val content = t.substring(1, t.length - 1).trim()
-                            if (content.isEmpty()) return "<$name></$name>"
-
-                            val items = content.split(Regex("\\s*,\\s*(?=<)"))
-                            val joined = items.joinToString("") { it.trim() }
-                            return "<$name>$joined</$name>"
-                        }
-
-                        if (looksWrappedAs(name, t)) {
-                            return t
-                        }
-
-                        if (looksLikeElement(t)) {
-                            return "<$name>${escapeXml(t)}</$name>"
-                        }
-
-                        "<$name>${escapeXml(t)}</$name>"
+                        if (looksLikeXmlElement(value)) "<$name>$value</$name>"
+                        else "<$name>${escapeXmlSafe(value)}</$name>"
                     }
 
-                    is Number, is Boolean -> "<$name>${escapeXml(value.toString())}</$name>"
+                    is Number, is Boolean -> "<$name>$value</$name>"
 
                     is Collection<*> -> {
-                        if (value.isEmpty()) {
-                            return "<$name></$name>"
-                        }
+                        if (value.isEmpty()) return "<$name></$name>"
                         val inner = value.joinToString("") { v ->
-                            when (v) {
-                                is Pair<*, *> -> serializeXml(v.first.toString(), v.second)
-                                else -> serializeXml("${name}_item", v)
-                            }
+                            val itemName = if (v != null && v::class.java.declaredFields.isNotEmpty())
+                                v::class.java.simpleName.decapitalize()
+                            else "item"
+                            serializeXml(itemName, v)
                         }
                         "<$name>$inner</$name>"
                     }
@@ -454,6 +423,7 @@ class ObjectGene(
                     }
 
                     else -> {
+                        // POJO
                         val fields = value::class.java.declaredFields
                         fields.forEach { it.isAccessible = true }
                         val inner = fields.joinToString("") { f ->
@@ -464,11 +434,16 @@ class ObjectGene(
                 }
             }
 
+            // Map included fields
             val children: List<Pair<String, Any?>> = includedFields.map { f ->
                 f.name to f.getValueAsPrintableString(previousGenes, mode, targetFormat)
             }
-            val xmlPayload = serializeXml(name, children)
-            buffer.append(xmlPayload)
+
+            val xmlPayload = children.joinToString("") { (fieldName, fieldValue) ->
+                serializeXml(fieldName, fieldValue)
+            }
+
+            buffer.append("<$name>$xmlPayload</$name>")
         } else if (mode == GeneUtils.EscapeMode.X_WWW_FORM_URLENCODED) {
 
             buffer.append(includedFields.map {
