@@ -22,7 +22,7 @@ internal class ObjectGeneTest {
         val childElement = ObjectGene("childElement", listOf())
         val parentElement = ObjectGene("parentElement", listOf(childElement))
         val xmlString = parentElement.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        Assertions.assertEquals("<parentElement><childElement><childElement></childElement></childElement></parentElement>", xmlString)
+        Assertions.assertEquals("<parentElement><childElement></childElement></parentElement>", xmlString)
     }
 
     @Test
@@ -31,7 +31,7 @@ internal class ObjectGeneTest {
         val level1 = ObjectGene("level1", listOf(level2))
         val level0 = ObjectGene("level0", listOf(level1))
         val xmlString = level0.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        Assertions.assertEquals("<level0><level1><level1><level2><level2></level2></level2></level1></level1></level0>", xmlString)
+        Assertions.assertEquals("<level0><level1><level2></level2></level1></level0>", xmlString)
     }
 
     @Test
@@ -68,7 +68,7 @@ internal class ObjectGeneTest {
         val child1 = ObjectGene("child", listOf())
         val gene = ObjectGene("parent", listOf(child0, child1))
         val actual = gene.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        assertEquals("<parent><child><child></child></child><child><child></child></child></parent>", actual)
+        assertEquals("<parent><child></child><child></child></parent>", actual)
     }
 
 

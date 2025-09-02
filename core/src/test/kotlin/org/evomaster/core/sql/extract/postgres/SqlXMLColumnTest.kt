@@ -221,7 +221,7 @@ class SqlXMLColumnTest : ExtractTestBasePostgres() {
 
         assertTrue(xmlDataValue is PgSQLXML)
         xmlDataValue as PgSQLXML
-        assertEquals("<parentElement><childElement><childElement></childElement></childElement></parentElement>", xmlDataValue.string)
+        assertEquals("<parentElement><childElement></childElement></parentElement>", xmlDataValue.string)
     }
 
 
