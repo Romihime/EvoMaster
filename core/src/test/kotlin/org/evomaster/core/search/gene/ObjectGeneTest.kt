@@ -1,5 +1,6 @@
 package org.evomaster.core.search.gene
 
+import org.evomaster.core.search.gene.collection.ArrayGene
 import org.evomaster.core.search.gene.numeric.IntegerGene
 import org.evomaster.core.search.gene.string.StringGene
 import org.evomaster.core.search.gene.utils.GeneUtils
@@ -136,5 +137,22 @@ internal class ObjectGeneTest {
                     "</location>" +
             "</device>"
         assertEquals(expected, actual)
+    }
+
+    @Test
+    fun testXmlArrayPrinting() {
+
+        // Creamos un gene hijo con el nombre correcto (simulando schema.items.xml.name="photoUrl")
+        val item1 = StringGene("sarasa1", "yC")
+        val item2 = StringGene("lala2", "2ctkEeIof")
+
+        // Creamos el array gene
+        val array = ArrayGene("photoUrls", StringGene("item"), elements = mutableListOf(item1, item2))
+
+        // Forzamos ObjectGene a serializarlo
+        val root = ObjectGene(name = "root", fields = listOf(array))
+
+        val xml = root.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
+        assertEquals("<root><photoUrls><sarasa1>yC</sarasa1><lala2>2ctkEeIof</lala2></photoUrls></root>", xml)
     }
 }

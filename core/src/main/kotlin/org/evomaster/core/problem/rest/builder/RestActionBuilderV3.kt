@@ -21,6 +21,7 @@ import org.evomaster.core.EMConfig
 import org.evomaster.core.Lazy
 import org.evomaster.core.StaticCounter
 import org.evomaster.core.logging.LoggingUtil
+import org.evomaster.core.logging.LoggingUtil.Companion.getInfoLogger
 import org.evomaster.core.parser.RegexHandler
 import org.evomaster.core.problem.api.param.Param
 import org.evomaster.core.problem.rest.data.Endpoint
@@ -681,7 +682,6 @@ object RestActionBuilderV3 {
         options: Options,
         messages: MutableList<String>
     ) {
-
         // Return early if requestBody is missing
         val body = operation.requestBody ?: return
 
@@ -747,10 +747,7 @@ object RestActionBuilderV3 {
             listOf()
         }
 
-        val deref = obj.schema.`$ref`?.let { ref -> val name = ref.substringAfterLast("/")
-            SchemaUtils.getReferenceSchema(schemaHolder, currentSchema, ref, messages) } ?: obj.schema
-
-        val name = deref?.xml?.name ?: deref?.`$ref`?.substringAfterLast("/") ?: "body"
+        val name ="body"
 
         var gene = getGene(name, obj.schema, schemaHolder,currentSchema, referenceClassDef = null, options = options, messages = messages, examples = examples)
 
@@ -934,7 +931,30 @@ object RestActionBuilderV3 {
                     } else {
                         schema.items
                     }
-                    val template = getGene(name + "_item", arrayType, schemaHolder,currentSchema, history, referenceClassDef = null, options = options, messages = messages)
+
+                    var itemXmlName = arrayType.xml?.name
+
+                    println("DEBUG items.xml inline = ${arrayType.xml}")
+
+                    if (itemXmlName == null && !arrayType.`$ref`.isNullOrBlank()) {
+                        val refSchemaName = arrayType.`$ref`.substringAfterLast("/")
+
+                        val referencedSchema = currentSchema.schemaParsed.components?.schemas?.get(refSchemaName)
+
+                        if (referencedSchema != null) {
+                            itemXmlName = referencedSchema.xml?.name
+                            println("DEBUG - Resolved \$ref '$refSchemaName', found xml.name: $itemXmlName")
+                        }
+                    }
+
+                    val itemName = itemXmlName ?: schema.xml?.name ?: name
+
+                    println("DEBUG ARRAY - name: $name")
+                    println("DEBUG ARRAY - arrayType.xml?.name: ${arrayType.xml?.name}")
+                    println("DEBUG ARRAY - arrayType.\$ref: ${arrayType.`$ref`}")
+                    println("DEBUG ARRAY - schema.xml?.name: ${schema.xml?.name}")
+
+                    val template = getGene(itemName, arrayType, schemaHolder,currentSchema, history, referenceClassDef = null, options = options, messages = messages)
 
                     //Could still have an empty []
 //                    if (template is CycleObjectGene) {
@@ -968,8 +988,7 @@ object RestActionBuilderV3 {
                             messages
                         )
                     }
-
-                    return ObjectWithAttributesGene(
+                    val new = ObjectWithAttributesGene(
                         name = schema.xml?.name ?: name,
                         fixedFields = fields,
                         refType = referenceClassDef,
@@ -978,6 +997,11 @@ object RestActionBuilderV3 {
                         additionalFields = mutableListOf(),
                         attributeNames = attributeNames
                     )
+
+                    if (!new.isValid)
+                        messages.add(new.validationErrors.toString())
+
+                    return new;
                 }else{
                     return createObjectGene(name, schema, schemaHolder,currentSchema, history, referenceClassDef, options, examples, messages)
                 }
@@ -1144,7 +1168,7 @@ object RestActionBuilderV3 {
             ?: emptyList()
 
         if (attributeNames.isNotEmpty()) {
-            return ObjectWithAttributesGene(
+            val new = ObjectWithAttributesGene(
                 name = name,
                 fixedFields = fields,
                 refType = if (schema is ObjectSchema) referenceTypeName ?: schema.title else null,
@@ -1153,6 +1177,9 @@ object RestActionBuilderV3 {
                 additionalFields = mutableListOf(),
                 attributeNames = attributeNames.toSet()
             )
+            if (!new.isValid)
+                messages.add(new.validationErrors.toString())
+            return new;
         }
 
         return assembleObjectGeneWithConstraints(

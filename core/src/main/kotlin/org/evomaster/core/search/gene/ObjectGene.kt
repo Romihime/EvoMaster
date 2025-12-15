@@ -316,11 +316,6 @@ open class ObjectGene(
             .replace("\"", "&quot;")
             .replace("'", "&apos;")
 
-    private fun singularize(n: String): String =
-        when {
-            n.endsWith("s") && n.length > 1 -> n.removeSuffix("s")
-            else -> n
-        }.replaceFirstChar { it.uppercase() }
 
     private fun unwrap(v: Any?): Any? =
         when (v) {
@@ -382,8 +377,9 @@ open class ObjectGene(
             }
 
             is Collection<*> -> v.joinToString("", "<$name>", "</$name>") {
-                val itemName = singularize(name)
-                serializeXml(previousGenes, itemName, it, targetFormat)
+                val unwrappedItem  = unwrap(it)
+                val itemName = (unwrappedItem as? Gene)?.name ?: name
+                serializeXml(previousGenes, itemName, unwrappedItem, targetFormat)
             }
 
             is Map<*, *> -> v.entries.joinToString("", "<$name>", "</$name>") {
@@ -391,9 +387,13 @@ open class ObjectGene(
             }
 
             is ArrayGene<*> -> {
-                val itemName = singularize(name)
-                v.getViewOfElements().joinToString("", "<$name>", "</$name>") {
-                    serializeXml(previousGenes, itemName, it, targetFormat)
+                println(" - name del array: type=${v::class.simpleName}, value=$v, name=${(v as? Gene)?.name}")
+
+                v.getViewOfElements().joinToString("", "<$name>", "</$name>") { elem ->
+                    val unwrapped = unwrap(elem)
+                    val itemName = (unwrapped as? Gene)?.name ?: name
+                    println(" - element del array: type=${elem::class.simpleName}, value=$elem, name=${(elem as? Gene)?.name}")
+                    serializeXml(previousGenes, itemName, unwrapped, targetFormat)
                 }
             }
 
@@ -432,7 +432,6 @@ open class ObjectGene(
                     "\"${it.first.value}\":${it.second.getValueAsPrintableString(previousGenes, mode, targetFormat)}"
                 }
             }
-
             buffer.append("}")
 
         } else if (mode == GeneUtils.EscapeMode.XML) {
