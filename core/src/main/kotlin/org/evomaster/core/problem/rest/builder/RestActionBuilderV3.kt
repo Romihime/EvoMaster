@@ -934,7 +934,6 @@ object RestActionBuilderV3 {
 
                     var itemXmlName = arrayType.xml?.name
 
-                    println("DEBUG items.xml inline = ${arrayType.xml}")
 
                     if (itemXmlName == null && !arrayType.`$ref`.isNullOrBlank()) {
                         val refSchemaName = arrayType.`$ref`.substringAfterLast("/")
@@ -943,16 +942,11 @@ object RestActionBuilderV3 {
 
                         if (referencedSchema != null) {
                             itemXmlName = referencedSchema.xml?.name
-                            println("DEBUG - Resolved \$ref '$refSchemaName', found xml.name: $itemXmlName")
                         }
                     }
 
                     val itemName = itemXmlName ?: schema.xml?.name ?: name
 
-                    println("DEBUG ARRAY - name: $name")
-                    println("DEBUG ARRAY - arrayType.xml?.name: ${arrayType.xml?.name}")
-                    println("DEBUG ARRAY - arrayType.\$ref: ${arrayType.`$ref`}")
-                    println("DEBUG ARRAY - schema.xml?.name: ${schema.xml?.name}")
 
                     val template = getGene(itemName, arrayType, schemaHolder,currentSchema, history, referenceClassDef = null, options = options, messages = messages)
 

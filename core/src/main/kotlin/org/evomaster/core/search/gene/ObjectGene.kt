@@ -387,12 +387,12 @@ open class ObjectGene(
             }
 
             is ArrayGene<*> -> {
-                println(" - name del array: type=${v::class.simpleName}, value=$v, name=${(v as? Gene)?.name}")
+                //println(" - name del array: type=${v::class.simpleName}, value=$v, name=${(v as? Gene)?.name}")
 
                 v.getViewOfElements().joinToString("", "<$name>", "</$name>") { elem ->
                     val unwrapped = unwrap(elem)
                     val itemName = (unwrapped as? Gene)?.name ?: name
-                    println(" - element del array: type=${elem::class.simpleName}, value=$elem, name=${(elem as? Gene)?.name}")
+                    //println(" - element del array: type=${elem::class.simpleName}, value=$elem, name=${(elem as? Gene)?.name}")
                     serializeXml(previousGenes, itemName, unwrapped, targetFormat)
                 }
             }

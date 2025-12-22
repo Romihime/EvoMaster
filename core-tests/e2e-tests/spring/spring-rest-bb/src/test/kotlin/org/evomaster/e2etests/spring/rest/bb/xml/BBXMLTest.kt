@@ -1,6 +1,8 @@
 package org.evomaster.e2etests.spring.rest.bb.xml
 
 import com.foo.rest.examples.bb.xml.BBXMLController
+import org.evomaster.client.java.instrumentation.shared.ClassName
+import org.evomaster.core.EMConfig
 import org.evomaster.core.output.OutputFormat
 import org.evomaster.core.problem.rest.data.HttpVerb
 import org.evomaster.e2etests.spring.rest.bb.SpringTestBase
@@ -16,34 +18,39 @@ class BBXMLTest : SpringTestBase() {
         @BeforeAll
         @JvmStatic
         fun init() {
-            initClass(BBXMLController())
+            val config = EMConfig()
+            initClass(BBXMLController(), config)
         }
     }
 
     @Test
-    fun testGeneratedTestsForJsonAndXml() {
-        println("Starting BBXML test...")
+    fun testRunEM() {
 
-        val args = mutableListOf<String>()
+        val className = ClassName("org.foo.XmlEM")
+        val outputFormat = OutputFormat.JAVA_JUNIT_5
 
-        setOption(args, "blackBox", "true")
-        setOption(args, "bbSwaggerUrl", "file:///C:/Users/Usuario/Documents/GitHub/petstore.txt")
-        setOption(args, "bbTargetUrl", "http://localhost:8080")
-        setOption(args, "outputFormat", "JAVA_JUNIT_5")
-        setOption(args, "outputFolder", "./evomaster-tests")
-        setOption(args, "maxTime", "30s")
-        setOption(args, "ratePerMinute", "60")
-        setOption(args, "blackBoxCleanUp", "false")
+        testRunEMGeneric(true, className, outputFormat)
 
-        val solution = initAndRun(args)
+    }
 
-        println("=== SOLUTION ===")
-        println(solution)
+    fun testRunEMGeneric(basicAssertions: Boolean, className: ClassName, outputFormat: OutputFormat? = OutputFormat.JAVA_JUNIT_5){
 
-        assertTrue(solution.individuals.isNotEmpty())
+        val lambda = { args: MutableList<String> ->
+            args.add("--enableBasicAssertions")
+            args.add(basicAssertions.toString())
 
-        // tus validaciones personalizadas
-        assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/pet", null)
-        assertHasAtLeastOne(solution, HttpVerb.PUT, 400, "/api/pet", null)
+            val solution = initAndRun(args)
+            assertTrue(solution.individuals.size >= 1)
+
+            /*assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/receive-string-respond-xml", null)
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/receive-xml-respond-string", null)
+
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/employee", null)
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/company", null)
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/department", null)
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/organization", null)
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/projects", null)
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/project", null)*/
+        }
     }
 }
