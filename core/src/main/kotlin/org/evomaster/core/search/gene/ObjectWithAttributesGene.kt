@@ -96,9 +96,12 @@ class ObjectWithAttributesGene(
         targetFormat: OutputFormat?,
         extraCheck: Boolean
     ): String {
-
         if (mode != GeneUtils.EscapeMode.XML) {
             return super.getValueAsPrintableString(previousGenes, mode, targetFormat, extraCheck)
+        }
+        
+        if (!isValid) {
+            throw IllegalStateException(validationErrors.first())
         }
 
         val includedFields = fixedFields

@@ -8,7 +8,10 @@ import org.evomaster.core.search.gene.string.StringGene
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.evomaster.core.search.gene.utils.GeneUtils
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.assertThrows
 
 class ObjectWithAttributesGeneTest {
 
@@ -302,7 +305,6 @@ class ObjectWithAttributesGeneTest {
 
     @Test
     fun testXmlFailsOnDuplicateChildNames() {
-
         val obj = ObjectWithAttributesGene(
             name = "parent",
             fixedFields = listOf(
@@ -313,14 +315,15 @@ class ObjectWithAttributesGeneTest {
             attributeNames = emptySet()
         )
 
-        val messages = mutableListOf<String>()
-        val actual = obj.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
+        val ex = assertThrows<IllegalStateException> {
+            obj.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
+        }
 
-        assertEquals("", actual)
-
+        assertTrue(ex.message?.contains("Duplicate child elements not allowed in XML") == true)
+        assertFalse(obj.isValid)
         assertTrue(
-            messages.any { it.contains("Duplicate child elements not allowed in XML") },
-            "Expected duplicate child warning in messages, but got: $messages"
+            obj.validationErrors.any { it.contains("Duplicate child elements not allowed in XML") },
+            "Expected duplicate child warning in validation errors, but got: ${obj.validationErrors}"
         )
     }
 }
