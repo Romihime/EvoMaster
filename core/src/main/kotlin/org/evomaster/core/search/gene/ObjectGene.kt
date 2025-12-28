@@ -16,6 +16,7 @@ import org.evomaster.core.search.gene.wrapper.FlexibleGene
 import org.evomaster.core.search.gene.wrapper.OptionalGene
 import org.evomaster.core.search.gene.placeholder.CycleObjectGene
 import org.evomaster.core.search.gene.root.CompositeConditionalFixedGene
+import org.evomaster.core.search.gene.root.SimpleGene
 import org.evomaster.core.search.gene.string.StringGene
 import org.evomaster.core.search.gene.utils.GeneUtils
 import org.evomaster.core.search.gene.utils.GeneUtils.isInactiveOptionalGene
@@ -320,34 +321,6 @@ open class ObjectGene(
     public fun cleanXmlValueString(v: String): String =
         v.removeSurrounding("\"").let(::escapeXmlSafe)
 
-    private fun getPrintedValue(
-        previousGenes: List<Gene>,
-        v: Gene,
-        targetFormat: OutputFormat?
-    ): String =
-        cleanXmlValueString(
-            v.getValueAsPrintableString(
-                previousGenes,
-                GeneUtils.EscapeMode.XML,
-                targetFormat
-            )
-        )
-
-    private fun isPrimitiveGene(value: Any?): Boolean {
-        val leaf = (value as? Gene)?.getLeafGene() ?: value
-        return when (leaf) {
-            is StringGene,
-            is BooleanGene,
-            is IntegerGene,
-            is DoubleGene,
-            is FloatGene,
-            is String,
-            is Number,
-            is Boolean -> true
-            else -> false
-        }
-    }
-
     private fun serializeXml(
         previousGenes: List<Gene>,
         name: String,
@@ -359,11 +332,7 @@ open class ObjectGene(
         val leaf = g?.getLeafGene()
 
         if (name == contentXMLTag) {
-            return when (val v = leaf) {
-                is Gene -> getPrintedValue(previousGenes, v, targetFormat)
-                null -> ""
-                else -> escapeXmlSafe(v.toString())
-            }
+            return leaf?.getValueAsPrintableString(previousGenes, GeneUtils.EscapeMode.XML, targetFormat) ?: "<$name></$name>"
         }
 
         val v = leaf ?: return "<$name></$name>"
@@ -385,11 +354,9 @@ open class ObjectGene(
             }
 
             is Collection<*> -> v.joinToString("", "<$name>", "</$name>") {
-                val g = it as? Gene
-                val leaf = g?.getLeafGene()
-                val unwrappedItem  = leaf
-                val itemName = (unwrappedItem as? Gene)?.name ?: name
-                serializeXml(previousGenes, itemName, unwrappedItem, targetFormat)
+                val leaf = (it as? Gene)?.getLeafGene()
+                val itemName = (leaf as? Gene)?.name ?: name
+                serializeXml(previousGenes, itemName, leaf, targetFormat)
             }
 
             is Map<*, *> -> v.entries.joinToString("", "<$name>", "</$name>") {
@@ -400,26 +367,17 @@ open class ObjectGene(
                 //println(" - name del array: type=${v::class.simpleName}, value=$v, name=${(v as? Gene)?.name}")
 
                 v.getViewOfElements().joinToString("", "<$name>", "</$name>") { elem ->
-                    val g = elem as? Gene
-                    val leaf = g?.getLeafGene()
-                    val unwrapped = leaf
-                    val itemName = (unwrapped as? Gene)?.name ?: name
+                    val leaf = (elem as? Gene)?.getLeafGene()
+                    val itemName = (leaf as? Gene)?.name ?: name
                     //println(" - element del array: type=${elem::class.simpleName}, value=$elem, name=${(elem as? Gene)?.name}")
-                    serializeXml(previousGenes, itemName, unwrapped, targetFormat)
+                    serializeXml(previousGenes, itemName, leaf, targetFormat)
                 }
             }
 
-            is Gene -> "<$name>${getPrintedValue(previousGenes, v, targetFormat)}</$name>"
-
-            else -> "<$name>${cleanXmlValueString(v.toString())}</$name>"
+            //Gene
+            else -> "<$name>${v.getValueAsPrintableString(previousGenes, GeneUtils.EscapeMode.XML, targetFormat)}</$name>"
         }
     }
-
-    private fun unwrap(v: Any?): Any? =
-        when (v) {
-            is OptionalGene -> v.gene
-            else -> v
-        }
 
     override fun getValueAsPrintableString(previousGenes: List<Gene>, mode: GeneUtils.EscapeMode?, targetFormat: OutputFormat?, extraCheck: Boolean): String {
 
@@ -455,14 +413,16 @@ open class ObjectGene(
         } else if (mode == GeneUtils.EscapeMode.XML) {
 
             val inner = includedFields.joinToString("") { f ->
-                serializeXml(previousGenes, f.name, unwrap(f), targetFormat)
+                serializeXml(previousGenes, f.name, f.getLeafGene(), targetFormat)
             }
 
             val singleField = includedFields.singleOrNull()
-            val inlinePrimitive = singleField?.let { isPrimitiveGene(unwrap(it)) } == true
+            val leafGene = singleField?.getLeafGene()
+
+            val inlinePrimitive = leafGene != null && leafGene.getViewOfChildren().isEmpty()
 
             val xmlPayload = if (inlinePrimitive) {
-                val childValue = getPrintedValue(previousGenes, unwrap(singleField) as Gene, targetFormat)
+                val childValue = singleField.getLeafGene().getValueAsPrintableString(previousGenes, GeneUtils.EscapeMode.XML , targetFormat)
                 "<$name>$childValue</$name>"
             } else {
                 "<$name>$inner</$name>"
