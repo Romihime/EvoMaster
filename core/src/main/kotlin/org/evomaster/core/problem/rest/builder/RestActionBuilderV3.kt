@@ -746,8 +746,10 @@ object RestActionBuilderV3 {
         } else {
             listOf()
         }
+        val deref = obj.schema.`$ref`?.let { ref -> val name = ref.substringAfterLast("/")
+            SchemaUtils.getReferenceSchema(schemaHolder, currentSchema, ref, messages) } ?: obj.schema
 
-        val name ="body"
+        val name = deref?.xml?.name ?: deref?.`$ref`?.substringAfterLast("/") ?: "body"
 
         var gene = getGene(name, obj.schema, schemaHolder,currentSchema, referenceClassDef = null, options = options, messages = messages, examples = examples)
 
