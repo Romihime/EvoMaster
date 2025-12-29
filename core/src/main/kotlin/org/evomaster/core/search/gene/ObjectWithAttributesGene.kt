@@ -1,12 +1,15 @@
 package org.evomaster.core.search.gene
 
 import com.sun.org.apache.xml.internal.serializer.utils.Utils.messages
+import org.evomaster.core.logging.LoggingUtil
 import org.evomaster.core.output.OutputFormat
 import org.evomaster.core.search.gene.collection.PairGene
 import org.evomaster.core.search.gene.placeholder.CycleObjectGene
 import org.evomaster.core.search.gene.string.StringGene
 import org.evomaster.core.search.gene.utils.GeneUtils
 import org.evomaster.core.search.gene.wrapper.OptionalGene
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 class ObjectWithAttributesGene(
     name: String,
@@ -18,6 +21,9 @@ class ObjectWithAttributesGene(
     val attributeNames: Set<String> = emptySet()
 ) : ObjectGene(name, fixedFields, refType, isFixed, template, additionalFields) {
 
+    companion object {
+        private val log: Logger = LoggerFactory.getLogger(ObjectWithAttributesGene::class.java)
+    }
     /**
      * List of validation errors found in this object's structure
      */
@@ -101,7 +107,9 @@ class ObjectWithAttributesGene(
         }
         
         if (!isValid) {
-            throw IllegalStateException(validationErrors.first())
+           validationErrors.forEach { error ->
+               LoggingUtil.uniqueWarn(log, "XML Schema validation error in '$name' : $error")
+           }
         }
 
         val includedFields = fixedFields

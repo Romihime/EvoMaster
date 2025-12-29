@@ -42,7 +42,7 @@ class BBXMLTest : SpringTestBase() {
             val solution = initAndRun(args)
             assertTrue(solution.individuals.size >= 1)
 
-            /*assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/receive-string-respond-xml", null)
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/receive-string-respond-xml", null)
             assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/receive-xml-respond-string", null)
 
             assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/employee", null)
@@ -50,7 +50,7 @@ class BBXMLTest : SpringTestBase() {
             assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/department", null)
             assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/organization", null)
             assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/projects", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/project", null)*/
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/project", null)
         }
     }
 }
