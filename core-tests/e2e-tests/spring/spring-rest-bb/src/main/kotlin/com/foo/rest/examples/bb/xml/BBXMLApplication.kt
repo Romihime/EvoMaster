@@ -127,22 +127,23 @@ open class BBXMLApplication {
 
 @XmlRootElement(name = "person")
 @XmlAccessorType(XmlAccessType.FIELD)
-data class Person(
+open class Person(
     var name: String = "",
     var age: Int = 0
 )
 
 @XmlRootElement(name = "employee")
 @XmlAccessorType(XmlAccessType.FIELD)
-data class Employee(
+open class Employee(
     var person: Person = Person(),
     var role: Role = Role.USER
 )
 
 @XmlRootElement(name = "company")
-data class Company(
+@XmlAccessorType(XmlAccessType.FIELD)
+open class Company(
     var name: String = "",
-    @XmlElement(name = "person")
+    @field:XmlElement(name = "Person", namespace = "")
     var employees: List<Person> = emptyList()
 )
 
@@ -150,29 +151,29 @@ enum class Role { ADMIN, USER, GUEST }
 
 @XmlRootElement(name = "department")
 @XmlAccessorType(XmlAccessType.FIELD)
-data class Department(
+open class Department(
     var name: String = "",
-    @XmlElement(name = "employee")
+    @field:XmlElement(name = "Employee", namespace = "")
     var employees: List<Employee> = emptyList(),
-    @XmlElement(name = "department")
+    @field:XmlElement(name = "Department", namespace = "")
     var subDepartments: List<Department> = emptyList()
 )
 
 @XmlRootElement(name = "organization")
 @XmlAccessorType(XmlAccessType.FIELD)
-data class Organization(
+open class Organization(
     var name: String = "",
-    @XmlElement(name = "person")
+    @field:XmlElement(name = "Person", namespace = "")
     var people: List<Person> = emptyList(),
-    @XmlElement(name = "employee")
+    @field:XmlElement(name = "Employee", namespace = "")
     var employees: List<Employee> = emptyList(),
-    @XmlElement(name = "company")
+    @field:XmlElement(name = "Company", namespace = "")
     var companies: List<Company> = emptyList()
 )
 
 @XmlRootElement(name = "personWithAttr")
 @XmlAccessorType(XmlAccessType.FIELD)
-data class PersonWithAttr(
+open class PersonWithAttr(
     @XmlAttribute(name = "id")
     var id: String = "",
     var name: String = "",
@@ -181,16 +182,17 @@ data class PersonWithAttr(
 
 @XmlRootElement(name = "project")
 @XmlAccessorType(XmlAccessType.FIELD)
-data class Project(
+open class Project(
     @XmlAttribute(name = "code")
     var code: String = "",
-    @XmlElement(name = "person")
+    @field:XmlElement(name = "PersonWithAttr", namespace = "")
     var members: List<PersonWithAttr> = emptyList()
 )
 
 @XmlRootElement(name = "projectList")
 @XmlAccessorType(XmlAccessType.FIELD)
-data class ProjectList(
-    @XmlElement(name = "project")
+open class ProjectList(
+    @field:XmlElement(name = "Project", namespace = "")
     var projects: List<Project> = emptyList()
 )
+
