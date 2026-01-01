@@ -353,10 +353,13 @@ open class ObjectGene(
                 "<$name>$inner</$name>"
             }
 
-            is Collection<*> -> v.joinToString("", "<$name>", "</$name>") {
-                val leaf = (it as? Gene)?.getLeafGene()
-                val itemName = (leaf as? Gene)?.name ?: name
-                serializeXml(previousGenes, itemName, leaf, targetFormat)
+            is Collection<*> -> {
+                val elements = v.joinToString("") {
+                    val leaf = (it as? Gene)?.getLeafGene()
+                    val itemName = (leaf as? Gene)?.name ?: name
+                    serializeXml(previousGenes, itemName, leaf, targetFormat)
+                }
+                "<$name>$elements</$name>"
             }
 
             is Map<*, *> -> v.entries.joinToString("", "<$name>", "</$name>") {
@@ -364,14 +367,12 @@ open class ObjectGene(
             }
 
             is ArrayGene<*> -> {
-                //println(" - name del array: type=${v::class.simpleName}, value=$v, name=${(v as? Gene)?.name}")
-
-                v.getViewOfElements().joinToString("", "<$name>", "</$name>") { elem ->
+                val elements = v.getViewOfElements().joinToString("") { elem ->
                     val leaf = (elem as? Gene)?.getLeafGene()
                     val itemName = (leaf as? Gene)?.name ?: name
-                    //println(" - element del array: type=${elem::class.simpleName}, value=$elem, name=${(elem as? Gene)?.name}")
                     serializeXml(previousGenes, itemName, leaf, targetFormat)
                 }
+                "<$name>$elements</$name>"
             }
 
             //Gene
