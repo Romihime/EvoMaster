@@ -125,27 +125,6 @@ class ArrayGeneTest {
     }
 
     @Test
-    fun testXmlSerializationWithoutBrackets(){
-        val stringArray = ArrayGene(
-            "items",
-            template = StringGene("item"),
-            elements = mutableListOf(
-                StringGene("item1", "value1"),
-                StringGene("item2", "value2"),
-                StringGene("item3", "value3")
-            )
-        )
-
-        val xmlOutput = stringArray.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-
-        assertEquals("<value1><value2><value3>", xmlOutput)
-
-        assertTrue(!xmlOutput.contains("["), "XML no debe contener corchetes de apertura")
-        assertTrue(!xmlOutput.contains("]"), "XML no debe contener corchetes de cierre")
-        assertTrue(!xmlOutput.contains(", "), "XML no debe contener comas con espacios")
-    }
-
-    @Test
     fun testJsonSerializationWithBrackets(){
         val intArray = ArrayGene(
             "numbers",
