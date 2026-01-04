@@ -180,7 +180,7 @@ open class PersonWithAttr(
     var age: Int = 0
 )
 
-@XmlRootElement(name = "project")
+@XmlRootElement(name ="project")
 @XmlAccessorType(XmlAccessType.FIELD)
 open class Project(
     @XmlAttribute(name = "code")
