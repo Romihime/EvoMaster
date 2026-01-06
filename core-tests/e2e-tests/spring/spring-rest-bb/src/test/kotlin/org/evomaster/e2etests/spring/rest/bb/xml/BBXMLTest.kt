@@ -1,13 +1,11 @@
 package org.evomaster.e2etests.spring.rest.bb.xml
 
 import com.foo.rest.examples.bb.xml.BBXMLController
-import org.evomaster.client.java.instrumentation.shared.ClassName
 import org.evomaster.core.EMConfig
 import org.evomaster.core.output.OutputFormat
 import org.evomaster.core.problem.rest.data.HttpVerb
 import org.evomaster.e2etests.spring.rest.bb.SpringTestBase
 import org.junit.Test
-import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 
@@ -26,31 +24,59 @@ class BBXMLTest : SpringTestBase() {
     @Test
     fun testRunEM() {
 
-        val className = ClassName("org.foo.XmlEM")
-        val outputFormat = OutputFormat.JAVA_JUNIT_5
+        runTestHandlingFlakyAndCompilation(
+            "BBXmlEM",
+            "org.foo.XmlEM",
+            100
+        ) { args: MutableList<String> ->
 
-        testRunEMGeneric(true, className, outputFormat)
-
-    }
-
-    fun testRunEMGeneric(basicAssertions: Boolean, className: ClassName, outputFormat: OutputFormat? = OutputFormat.JAVA_JUNIT_5){
-
-        val lambda = { args: MutableList<String> ->
+            addBlackBoxOptions(args, OutputFormat.JAVA_JUNIT_5)
             args.add("--enableBasicAssertions")
-            args.add(basicAssertions.toString())
+            args.add("true")
 
             val solution = initAndRun(args)
             assertTrue(solution.individuals.size >= 1)
 
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/receive-string-respond-xml", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/receive-xml-respond-string", null)
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/receive-string-respond-xml", null)
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/receive-xml-respond-string", null)
 
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/employee", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/company", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/department", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/organization", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/projects", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/project", null)
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/employee", null)
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/company", null)
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/department", null)
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/organization", null)
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/projects", null)
+
+            // Test XML attribute handling - endpoint /project requires proper parsing of @XmlAttribute
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/project", null)
+        }
+    }
+
+    @Test
+    fun testRunEMWithAttributeFocus() {
+
+        runTestHandlingFlakyAndCompilation(
+            "BBXmlAttrEM",
+            "org.foo.XmlAttrEM",
+            100
+        ) { args: MutableList<String> ->
+
+            addBlackBoxOptions(args, OutputFormat.JAVA_JUNIT_5)
+            args.add("--enableBasicAssertions")
+            args.add("true")
+
+            val solution = initAndRun(args)
+            assertTrue(solution.individuals.size >= 1)
+
+            // Focus on endpoints that use XML attributes
+            // /project endpoint checks for code attribute and member ids
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/project", "missing code")
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/project", "no members")
+            // /projects endpoint - list of objects with attributes
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/projects", "no projects")
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/projects", "invalid projects")
+
+            // This requires proper handling of multiple projects with code attributes and member ids
+            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/projects", "valid projects")
         }
     }
 }
