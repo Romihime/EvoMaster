@@ -598,6 +598,10 @@ class EMConfig {
             throw ConfigProblemException("The use of 'ssrf' requires 'security'")
         }
 
+        if(!security && xss) {
+            throw ConfigProblemException("The use of 'xss' requires 'security'")
+        }
+
         if (ssrf &&
             vulnerableInputClassificationStrategy == VulnerableInputClassificationStrategy.LLM &&
             !languageModelConnector) {
@@ -1439,6 +1443,11 @@ class EMConfig {
     @Experimental
     @Cfg("Determines which metric-tracking strategy is used by the AI response classifier.")
     var aIClassificationMetrics = AIClassificationMetrics.TIME_WINDOW
+
+    @Experimental
+    @Cfg("Determines whether the AI response classifier skips model updates when the response " +
+            "indicates a server-side error with status code 500.")
+    var skipAIModelUpdateWhenResponseIs500 = false
 
     @Cfg("Output a JSON file representing statistics of the fuzzing session, written in the WFC Report format." +
             " This also includes a index.html web application to visualize such data.")
@@ -2597,6 +2606,23 @@ class EMConfig {
     @Cfg("To apply SSRF detection as part of security testing.")
     var ssrf = false
 
+    @Experimental
+    @Cfg("To apply XSS detection as part of security testing.")
+    var xss = false
+
+    @Experimental
+    @Cfg("To apply SQLi detection as part of security testing.")
+    var sqli = false
+
+    @Experimental
+    @Cfg("Injected sleep duration (in seconds) used inside the malicious payload to detect time-based vulnerabilities.")
+    var sqliInjectedSleepDurationMs = 5500
+
+    @Experimental
+    @Cfg("Maximum allowed baseline response time (in milliseconds) before the malicious payload is applied.")
+    var sqliBaselineMaxResponseTimeMs = 2000
+
+
     @Regex(faultCodeRegex)
     @Cfg("Disable oracles. Provide a comma-separated list of codes to disable. " +
                 "By default, all oracles are enabled."
@@ -2939,6 +2965,14 @@ class EMConfig {
      * Some might be experimental, while others might be explicitly excluded by the user
      */
     fun isEnabledFaultCategory(category: FaultCategory) : Boolean{
+        if(category == DefinedFaultCategory.XSS && !xss){
+            return false;
+        }
+
+        if(category == DefinedFaultCategory.SQL_INJECTION && !sqli){
+            return false;
+        }
+
         return category !in getDisabledOracleCodesList()
     }
 

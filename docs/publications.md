@@ -13,27 +13,40 @@ Also, some of these papers provides full replication packages, which are linked 
 
 ## Recent arXiv Technical Reports, not Peer-Reviewed (Yet)
 
+* P. Garrett, J. P. Galeotti, A. Arcuri, A. Poth, O. Rrjolli.
+  *Generating REST API Tests With Descriptive Names*. 
+  [[arxiv]()]
+
 * O. Sahin, M. Zhang, A. Arcuri. 
   *WFC/WFD: Web Fuzzing Commons, Dataset and Guidelines to Support Experimentation in REST API Fuzzing*. 
   [[arxiv](https://arxiv.org/abs/2509.01612)]
 
-* H. Ghianni, M. Zhang, J. P. Galeotti, A. Arcuri.
-  *Search-Based Fuzzing For RESTful APIs That Use MongoDB*.
-  [[arxiv](https://arxiv.org/abs/2507.20848)]
 
 ## Peer-Reviewed Publications
+
+### 2026
+
+* H. Ghianni, M. Zhang, J. P. Galeotti, A. Arcuri.
+  *Search-Based Fuzzing For RESTful APIs That Use MongoDB*.
+  ACM/IEEE International Conference on Automation of Software Test (AST).
+  (To appear)
+
+* S. Seran, G. Bhandari, A. Arcuri. 
+  *Detecting Server-Side Request Forgery (SSRF) Vulnerabilities In REST API Fuzz Testing*.
+  IEEE International Workshop on Search-Based and Fuzz Testing (SBFT).
+  (To appear)
 
 ### 2025
 
 * A. Golmohammadi, M. Zhang, A. Arcuri. 
   *Tools and Benchmarks Evolve: What is their Impact on Parameter Tuning in SBSE Experiments?*.
   Empirical Software Engineering (EMSE).
-  (To appear)
+  [[PDF](publications/2025_emse_tuning.pdf)]
 
 * F. F. Susilo.
   *Human-Centered Evaluation of REST API Fuzzing Tools: Bridging Academia and Industry*.
   IEEE/ACM International Conference on Automated Software Engineering (ASE), Doctoral Symposium.
-  (To appear)
+  [[PDF](publications/2025_ase_ds.pdf)]
 
 * A. Arcuri, O. Sahin, M. Zhang.
   *Fuzzing for Detecting Access Policy Violations in REST APIs*.
