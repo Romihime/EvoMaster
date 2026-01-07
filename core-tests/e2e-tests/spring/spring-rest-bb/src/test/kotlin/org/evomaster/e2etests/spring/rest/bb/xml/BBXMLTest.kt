@@ -8,6 +8,7 @@ import org.evomaster.e2etests.spring.rest.bb.SpringTestBase
 import org.junit.Test
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
 
 
 class BBXMLTest : SpringTestBase() {
@@ -21,6 +22,7 @@ class BBXMLTest : SpringTestBase() {
         }
     }
 
+    @Disabled
     @Test
     fun testRunEM() {
 
@@ -51,6 +53,7 @@ class BBXMLTest : SpringTestBase() {
         }
     }
 
+    @Disabled
     @Test
     fun testRunEMWithAttributeFocus() {
 

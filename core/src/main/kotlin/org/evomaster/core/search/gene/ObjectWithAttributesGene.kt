@@ -1,6 +1,5 @@
 package org.evomaster.core.search.gene
 
-import com.sun.org.apache.xml.internal.serializer.utils.Utils.messages
 import org.evomaster.core.logging.LoggingUtil
 import org.evomaster.core.output.OutputFormat
 import org.evomaster.core.search.gene.collection.PairGene
