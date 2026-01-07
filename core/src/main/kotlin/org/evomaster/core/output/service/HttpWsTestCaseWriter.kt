@@ -534,10 +534,6 @@ abstract class HttpWsTestCaseWriter : ApiTestCaseWriter() {
                 val xml = bodyParam.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML, targetFormat = format)
 
                 when {
-
-                    format.isCsharp() -> {
-                        lines.append("new StringContent($xml, Encoding.UTF8, \"${bodyParam.contentType()}\")")
-                    }
                     format.isPython() -> {
                         lines.add("body = $xml")
                     }
