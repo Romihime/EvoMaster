@@ -1,13 +1,15 @@
-package org.evomaster.core.search.gene.xml
+package org.evomaster.core.search.gene
 
-import org.evomaster.core.search.gene.BooleanGene
-import org.evomaster.core.search.gene.ObjectGene
-import org.evomaster.core.search.gene.ObjectWithAttributesGene
+import org.evomaster.core.search.gene.collection.ArrayGene
 import org.evomaster.core.search.gene.numeric.IntegerGene
 import org.evomaster.core.search.gene.string.StringGene
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Test
 import org.evomaster.core.search.gene.utils.GeneUtils
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 class ObjectWithAttributesGeneTest {
 
@@ -37,10 +39,10 @@ class ObjectWithAttributesGeneTest {
         val actual = person.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
         val expected =
             "<parent attrib1=\"true\">" +
-                "<child1 attrib2=\"-1\" attrib3=\"bar\">42</child1>" +
-                "<child2>foo</child2>" +
-            "</parent>"
-        assertEquals(expected, actual)
+                    "<child1 attrib2=\"-1\" attrib3=\"bar\">42</child1>" +
+                    "<child2>foo</child2>" +
+                    "</parent>"
+        Assertions.assertEquals(expected, actual)
     }
 
     @Test
@@ -56,7 +58,7 @@ class ObjectWithAttributesGeneTest {
         val actual = obj.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
         val expected = "<empty></empty>"
 
-        assertEquals(expected, actual)
+        Assertions.assertEquals(expected, actual)
     }
 
     @Test
@@ -72,7 +74,7 @@ class ObjectWithAttributesGeneTest {
         val actual = obj.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
         val expected = "<person id=\"\"></person>"
 
-        assertEquals(expected, actual)
+        Assertions.assertEquals(expected, actual)
     }
 
     @Test
@@ -88,7 +90,7 @@ class ObjectWithAttributesGeneTest {
         val actual = obj.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
         val expected = "<item code=\"0\"></item>"
 
-        assertEquals(expected, actual)
+        Assertions.assertEquals(expected, actual)
     }
 
     @Test
@@ -107,7 +109,7 @@ class ObjectWithAttributesGeneTest {
         val actual = obj.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
         val expected = "<x attr=\"&quot;&lt;&gt;&amp;&apos;\">&quot;&lt;&gt;&amp;&apos;</x>"
 
-        assertEquals(expected, actual)
+        Assertions.assertEquals(expected, actual)
     }
 
     @Test
@@ -125,7 +127,7 @@ class ObjectWithAttributesGeneTest {
         val actual = obj.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
         val expected = "<item>42</item>"
 
-        assertEquals(expected, actual)
+        Assertions.assertEquals(expected, actual)
     }
 
     @Test
@@ -142,7 +144,7 @@ class ObjectWithAttributesGeneTest {
         val actual = obj.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
         val expected = "<flag>false</flag>"
 
-        assertEquals(expected, actual)
+        Assertions.assertEquals(expected, actual)
     }
 
     @Test
@@ -159,7 +161,7 @@ class ObjectWithAttributesGeneTest {
         val actual = obj.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
         val expected = "<node></node>"
 
-        assertEquals(expected, actual)
+        Assertions.assertEquals(expected, actual)
     }
 
     @Test
@@ -197,17 +199,17 @@ class ObjectWithAttributesGeneTest {
         val actual = root.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
         val expected =
             "<root id=\"root1\">" +
-                "<device>" +
+                    "<device>" +
                     "<model>XPhone</model>" +
                     "<location country=\"AR\">" +
-                        "<gps>" +
-                            "<lat>12</lat>" +
-                            "<lon>34</lon>" +
-                        "</gps>" +
+                    "<gps>" +
+                    "<lat>12</lat>" +
+                    "<lon>34</lon>" +
+                    "</gps>" +
                     "</location>" +
-                "</device>" +
-            "</root>"
-        assertEquals(expected, actual)
+                    "</device>" +
+                    "</root>"
+        Assertions.assertEquals(expected, actual)
     }
 
     @Test
@@ -240,13 +242,13 @@ class ObjectWithAttributesGeneTest {
             "<device>" +
                     "<model>XPhone</model>" +
                     "<location country=\"AR\">" +
-                        "<gps>" +
-                            "<lat>12</lat>" +
-                            "<lon>34</lon>" +
-                        "</gps>" +
+                    "<gps>" +
+                    "<lat>12</lat>" +
+                    "<lon>34</lon>" +
+                    "</gps>" +
                     "</location>" +
-            "</device>"
-        assertEquals(expected, actual)
+                    "</device>"
+        Assertions.assertEquals(expected, actual)
     }
 
     //tests from ObjectGene
@@ -261,7 +263,7 @@ class ObjectWithAttributesGeneTest {
 
         val actual = selection.getValueAsPrintableString(mode = GeneUtils.EscapeMode.BOOLEAN_SELECTION_MODE)
 
-        assertEquals("{foo,bar}", actual)
+        Assertions.assertEquals("{foo,bar}", actual)
     }
 
     @Test
@@ -277,46 +279,118 @@ class ObjectWithAttributesGeneTest {
 
         val actual = selection.getValueAsPrintableString(mode = GeneUtils.EscapeMode.BOOLEAN_SELECTION_MODE)
 
-        assertEquals("{foo,bar,nested{hello}}", actual)
+        Assertions.assertEquals("{foo,bar,nested{hello}}", actual)
     }
 
     @Test
     fun testTextCannotBeAttribute() {
 
-        val ex = org.junit.jupiter.api.assertThrows<IllegalStateException> {
+        val gene = ObjectWithAttributesGene(
+            name = "node",
+            fixedFields = listOf(
+                StringGene("#text", "value")
+            ),
+            isFixed = true,
+            attributeNames = setOf("#text")
+        )
 
-            ObjectWithAttributesGene(
-                name = "node",
-                fixedFields = listOf(
-                    StringGene("#text", "value")
-                ),
-                isFixed = true,
-                attributeNames = setOf("#text")  // ilegal
-            ).getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        }
+        assertFalse(gene.isValid)
+        assertTrue(gene.validationErrors.any{ it.contains("#text cannot be used as an attribute in XML")})
 
-        assertEquals("#text cannot be used as an attribute in XML", ex.message)
+        val xml = gene.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
+        assertNotNull(xml)
+    }
+
+    private fun assertTue(any: Any) {}
+
+
+    @Test
+    fun testXmlFailsOnDuplicateChildNames() {
+        val obj = ObjectWithAttributesGene(
+            name = "parent",
+            fixedFields = listOf(
+                StringGene("childDup", value = "a"),
+                StringGene("childDup", value = "b")
+            ),
+            isFixed = true,
+            attributeNames = emptySet()
+        )
+
+        assertFalse(obj.isValid)
+        assertTrue(
+            obj.validationErrors.any { it.contains("Duplicate child elements not allowed in XML") },
+            "Expected duplicate child warning in validation errors, but got: ${obj.validationErrors}"
+        )
+
+        val xml = obj.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
+        assertNotNull(xml)
+
+
     }
 
     @Test
-    fun testDuplicateChildNameThrowsException() {
+    fun testArrayGeneWithAttributesInsideObjectGene() {
 
-        val ex = org.junit.jupiter.api.assertThrows<IllegalStateException> {
-
-            ObjectWithAttributesGene(
-                name = "node",
-                fixedFields = listOf(
-                    StringGene("child", "a"),
-                    IntegerGene("child", 123) // duplicado
-                ),
-                isFixed = true,
-                attributeNames = emptySet()
-            ).getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        }
-
-        assertEquals(
-            "Duplicate child elements not allowed in XML: [child]",
-            ex.message
+        val root = ObjectGene(
+            name = "project",
+            listOf(
+                StringGene("code", "PRJ-001"),
+                ArrayGene(
+                    name = "members",
+                    template = ObjectWithAttributesGene(
+                        name = "member",
+                        fixedFields = listOf(
+                            StringGene("id", "M001"),
+                            StringGene("name", "John"),
+                            IntegerGene("age", 30)
+                        ),
+                        isFixed = false,
+                        attributeNames = setOf("id"),
+                        additionalFields = null
+                    ),
+                    elements = mutableListOf(
+                        ObjectWithAttributesGene(
+                            name = "member",
+                            fixedFields = listOf(
+                                StringGene("id", "M001"),
+                                StringGene("name", "Alice"),
+                                IntegerGene("age", 25)
+                            ),
+                            isFixed = false,
+                            attributeNames = setOf("id"),
+                            additionalFields = null
+                        ),
+                        ObjectWithAttributesGene(
+                            name = "member",
+                            fixedFields = listOf(
+                                StringGene("id", "M002"),
+                                StringGene("name", "Bob"),
+                                IntegerGene("age", 35)
+                            ),
+                            isFixed = false,
+                            attributeNames = setOf("id"),
+                            additionalFields = null
+                        )
+                    )
+                )
+            )
         )
+
+        val actual = root.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
+        val expected =
+            "<project>" +
+                    "<code>PRJ-001</code>" +
+                    "<members>" +
+                    "<member id=\"M001\">" +
+                    "<name>Alice</name>" +
+                    "<age>25</age>" +
+                    "</member>" +
+                    "<member id=\"M002\">" +
+                    "<name>Bob</name>" +
+                    "<age>35</age>" +
+                    "</member>" +
+                    "</members>" +
+                    "</project>"
+        Assertions.assertEquals(expected, actual)
     }
 }
