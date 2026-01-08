@@ -1,11 +1,15 @@
 package org.evomaster.core.search.gene
 
+import com.sun.org.apache.xml.internal.serializer.utils.Utils.messages
+import org.evomaster.core.logging.LoggingUtil
 import org.evomaster.core.output.OutputFormat
 import org.evomaster.core.search.gene.collection.PairGene
 import org.evomaster.core.search.gene.placeholder.CycleObjectGene
 import org.evomaster.core.search.gene.string.StringGene
 import org.evomaster.core.search.gene.utils.GeneUtils
 import org.evomaster.core.search.gene.wrapper.OptionalGene
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 class ObjectWithAttributesGene(
     name: String,
@@ -16,6 +20,44 @@ class ObjectWithAttributesGene(
     additionalFields: MutableList<PairGene<StringGene, Gene>>? = null,
     val attributeNames: Set<String> = emptySet()
 ) : ObjectGene(name, fixedFields, refType, isFixed, template, additionalFields) {
+
+    companion object {
+        private val log: Logger = LoggerFactory.getLogger(ObjectWithAttributesGene::class.java)
+    }
+    /**
+     * List of validation errors found in this object's structure
+     */
+    val validationErrors: List<String> by lazy {
+        val errors = mutableListOf<String>()
+
+        val includedFields = fixedFields
+            .filter { it !is CycleObjectGene }
+            .filter { it !is OptionalGene || (it.isActive && it.gene !is CycleObjectGene) }
+            .filter { it.isPrintable() }
+
+        val attributeFields = includedFields.filter { attributeNames.contains(it.name) }
+
+        //1) "#text" CANNOT be an attribute
+        if (attributeFields.any { it.name == "#text" }) {
+            errors.add("#text cannot be used as an attribute in XML")
+        }
+
+        val childFields = includedFields.filter { !attributeNames.contains(it.name) }
+
+        //2) Child names must be unique (XML does not allow repeated element names at this level)
+        val duplicated = childFields.groupBy { it.name }.filter { it.value.size > 1 }.keys
+        if (duplicated.isNotEmpty()) {
+            errors.add("Duplicate child elements not allowed in XML: $duplicated")
+        }
+
+        errors
+    }
+
+    /**
+     * @return true if this object's structure is valid according to XML rules
+     */
+    val isValid: Boolean
+        get() = validationErrors.isEmpty()
 
     constructor(name: String, fields: List<Gene>, refType: String? = null) : this(
         name, fixedFields = fields, refType = refType, isFixed = true, template = null, additionalFields = null, attributeNames = emptySet()
@@ -60,9 +102,14 @@ class ObjectWithAttributesGene(
         targetFormat: OutputFormat?,
         extraCheck: Boolean
     ): String {
-
         if (mode != GeneUtils.EscapeMode.XML) {
             return super.getValueAsPrintableString(previousGenes, mode, targetFormat, extraCheck)
+        }
+
+        if (!isValid) {
+            validationErrors.forEach { error ->
+                LoggingUtil.uniqueWarn(log, "XML Schema validation error in '$name' : $error")
+            }
         }
 
         val includedFields = fixedFields
@@ -72,21 +119,6 @@ class ObjectWithAttributesGene(
 
         val attributeFields = includedFields.filter { attributeNames.contains(it.name) }
         val childFields = includedFields.filter { !attributeNames.contains(it.name) }
-
-        // 1) "#text" CANNOT be an attribute
-        if (attributeFields.any { it.name == "#text" }) {
-            throw IllegalStateException("#text cannot be used as an attribute in XML")
-        }
-
-        // 2) Child names must be unique (XML does not allow repeated element names at this level)
-        val duplicated = childFields
-            .groupBy { it.name }
-            .filter { it.value.size > 1 }
-            .keys
-
-        if (duplicated.isNotEmpty()) {
-            throw IllegalStateException("Duplicate child elements not allowed in XML: $duplicated")
-        }
 
         val attributesString = attributeFields.joinToString(" ") { printAttribute(previousGenes, targetFormat, it) }
         val sb = StringBuilder()

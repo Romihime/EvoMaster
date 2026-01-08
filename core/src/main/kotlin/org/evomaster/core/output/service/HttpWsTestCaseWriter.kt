@@ -535,9 +535,6 @@ abstract class HttpWsTestCaseWriter : ApiTestCaseWriter() {
 
                 when {
 
-                    format.isCsharp() -> {
-                        lines.append("new StringContent($xml, Encoding.UTF8, \"${bodyParam.contentType()}\")")
-                    }
                     format.isPython() -> {
                         lines.add("body = $xml")
                     }
