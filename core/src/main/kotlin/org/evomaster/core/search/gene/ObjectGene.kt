@@ -16,7 +16,6 @@ import org.evomaster.core.search.gene.wrapper.FlexibleGene
 import org.evomaster.core.search.gene.wrapper.OptionalGene
 import org.evomaster.core.search.gene.placeholder.CycleObjectGene
 import org.evomaster.core.search.gene.root.CompositeConditionalFixedGene
-import org.evomaster.core.search.gene.root.SimpleGene
 import org.evomaster.core.search.gene.string.StringGene
 import org.evomaster.core.search.gene.utils.GeneUtils
 import org.evomaster.core.search.gene.utils.GeneUtils.isInactiveOptionalGene
@@ -43,27 +42,27 @@ import java.net.URLEncoder
  *              - type: integer
  */
 open class ObjectGene(
-        name: String,
-        val fixedFields: List<out Gene>,
-        val refType: String? = null,
-        /**
-         * represent whether the Object is fixed
-         * which determinate whether it allows to have additional fields
-         */
-        isFixed : Boolean,
-        /**
-         * a template for additionalFields
-         */
-        val template : PairGene<StringGene, Gene>?,
-        /**
-         * additional fields, and its field name is mutable
-         *
-         * note that [additionalFields] is not null only if [isFixed] is true
-         */
-        additionalFields:  MutableList<PairGene<StringGene, Gene>>?
+    name: String,
+    val fixedFields: List<out Gene>,
+    val refType: String? = null,
+    /**
+     * represent whether the Object is fixed
+     * which determinate whether it allows to have additional fields
+     */
+    isFixed : Boolean,
+    /**
+     * a template for additionalFields
+     */
+    val template : PairGene<StringGene, Gene>?,
+    /**
+     * additional fields, and its field name is mutable
+     *
+     * note that [additionalFields] is not null only if [isFixed] is true
+     */
+    additionalFields:  MutableList<PairGene<StringGene, Gene>>?
 ): CompositeConditionalFixedGene(
-        name, isFixed,
-        mutableListOf<Gene>().apply { addAll(fixedFields); if (additionalFields!=null) addAll(additionalFields) })
+    name, isFixed,
+    mutableListOf<Gene>().apply { addAll(fixedFields); if (additionalFields!=null) addAll(additionalFields) })
 {
 
     init {
@@ -115,7 +114,7 @@ open class ObjectGene(
 
     override fun randomize(randomness: Randomness, tryToForceNewValue: Boolean) {
         fixedFields.filter { it.isMutable() }
-                .forEach { it.randomize(randomness, tryToForceNewValue) }
+            .forEach { it.randomize(randomness, tryToForceNewValue) }
 
         if (!isFixed){
             Lazy.assert { template != null && additionalFields != null }
@@ -246,7 +245,7 @@ open class ObjectGene(
                 && (isFixed || additionalFields!!.size == other.additionalFields!!.size)
                 && this.fixedFields.zip(other.fixedFields) { thisField, otherField -> thisField.containsSameValueAs(otherField) }.all { it }
                 && (isFixed || this.additionalFields!!.zip(other.additionalFields!!) { thisField, otherField -> thisField.containsSameValueAs(otherField) }.all { it }
-        )
+                )
     }
 
     override fun unsafeCopyValueFrom(other: Gene): Boolean {
@@ -287,7 +286,7 @@ open class ObjectGene(
     override fun adaptiveSelectSubsetToMutate(randomness: Randomness, internalGenes: List<Gene>, mwc: MutationWeightControl, additionalGeneMutationInfo: AdditionalGeneMutationInfo): List<Pair<Gene, AdditionalGeneMutationInfo?>> {
 
         if (additionalGeneMutationInfo.impact != null
-                && additionalGeneMutationInfo.impact is ObjectGeneImpact) {
+            && additionalGeneMutationInfo.impact is ObjectGeneImpact) {
             val impacts = internalGenes.map {
                 /*
                   TODO here we need to consider genes which belongs to fixedFiled or not
@@ -295,7 +294,7 @@ open class ObjectGene(
                 additionalGeneMutationInfo.impact.fixedFields.getValue(it.name)
             }
             val selected = mwc.selectSubGene(
-                    internalGenes, true, additionalGeneMutationInfo.targets, individual = null, impacts = impacts, evi = additionalGeneMutationInfo.evi
+                internalGenes, true, additionalGeneMutationInfo.targets, individual = null, impacts = impacts, evi = additionalGeneMutationInfo.evi
             )
             val map = selected.map { internalGenes.indexOf(it) }
             return map.map { internalGenes[it] to additionalGeneMutationInfo.copyFoInnerGene(impact = impacts[it] as? GeneImpact, gene = internalGenes[it]) }
@@ -318,7 +317,6 @@ open class ObjectGene(
             .replace(">", "&gt;")
             .replace("\"", "&quot;")
             .replace("'", "&apos;")
-
 
     public fun cleanXmlValueString(v: String): String =
         v.removeSurrounding("\"").let(::escapeXmlSafe)
@@ -346,7 +344,6 @@ open class ObjectGene(
             }
 
             is ObjectGene -> {
-
                 val inner = v.fields.joinToString("") { f ->
                     val g = f as? Gene
                     val leaf = g?.getLeafGene()
@@ -411,6 +408,7 @@ open class ObjectGene(
                     "\"${it.first.value}\":${it.second.getValueAsPrintableString(previousGenes, mode, targetFormat)}"
                 }
             }
+
             buffer.append("}")
 
         } else if (mode == GeneUtils.EscapeMode.XML) {

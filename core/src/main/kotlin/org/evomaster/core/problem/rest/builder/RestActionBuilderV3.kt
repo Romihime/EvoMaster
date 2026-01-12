@@ -21,7 +21,6 @@ import org.evomaster.core.EMConfig
 import org.evomaster.core.Lazy
 import org.evomaster.core.StaticCounter
 import org.evomaster.core.logging.LoggingUtil
-import org.evomaster.core.logging.LoggingUtil.Companion.getInfoLogger
 import org.evomaster.core.parser.RegexHandler
 import org.evomaster.core.problem.api.param.Param
 import org.evomaster.core.problem.rest.data.Endpoint
@@ -106,9 +105,9 @@ object RestActionBuilderV3 {
         val probUseExamples: Double = 0.0,
 
         /**
-            If we are doing white-box testing, we might use advance techniques like taint analysis,
-            which might impact how we design the chromosome.
-            but, for black-box, they would not be useful
+        If we are doing white-box testing, we might use advance techniques like taint analysis,
+        which might impact how we design the chromosome.
+        but, for black-box, they would not be useful
          */
         val usingWhiteBox: Boolean = true
     ){
@@ -173,19 +172,19 @@ object RestActionBuilderV3 {
         val swagger = schemaHolder.main.schemaParsed
 
         swagger.paths
-                .forEach { e ->
-                    handlePathItem(
-                        e.key,
-                        e.value,
-                        messages,
-                        endpointsToSkip,
-                        skipped,
-                        actionCluster,
-                        schemaHolder,
-                        options,
-                        errorEndpoints
-                    )
-                }
+            .forEach { e ->
+                handlePathItem(
+                    e.key,
+                    e.value,
+                    messages,
+                    endpointsToSkip,
+                    skipped,
+                    actionCluster,
+                    schemaHolder,
+                    options,
+                    errorEndpoints
+                )
+            }
 
         ActionBuilderUtil.verifySkipped(skipped,endpointsToSkip)
         ActionBuilderUtil.printActionNumberInfo("RESTful API", actionCluster.size, skipped.size, errorEndpoints.size)
@@ -468,11 +467,11 @@ object RestActionBuilderV3 {
             val links = operation.responses
                 ?.filter { it.value.links != null && it.value.links.isNotEmpty() }
                 ?.flatMap { res ->  res.value.links.map {
-                        Triple(
-                            res.key, // the status code, used as key to identify the response object
-                            it.key,  // the name of the link
-                            it.value) // the actual link definition
-                    }
+                    Triple(
+                        res.key, // the status code, used as key to identify the response object
+                        it.key,  // the name of the link
+                        it.value) // the actual link definition
+                }
                 }
                 ?.mapNotNull {
                     try {
@@ -535,19 +534,19 @@ object RestActionBuilderV3 {
         val params = mutableListOf<Param>()
 
         removeDuplicatedParams(schemaHolder,currentSchema,operation,messages)
-                .forEach { p ->
+            .forEach { p ->
 
-                    if(p.`$ref` != null){
-                        val param = SchemaUtils.getReferenceParameter(schemaHolder,currentSchema, p.`$ref`, messages)
-                        if(param == null){
-                            messages.add("Failed to handle ${p.`$ref`} in $verb:$restPath")
-                        } else {
-                            handleParam(param, schemaHolder, currentSchema, params, options, messages)
-                        }
+                if(p.`$ref` != null){
+                    val param = SchemaUtils.getReferenceParameter(schemaHolder,currentSchema, p.`$ref`, messages)
+                    if(param == null){
+                        messages.add("Failed to handle ${p.`$ref`} in $verb:$restPath")
                     } else {
-                        handleParam(p, schemaHolder,currentSchema, params, options, messages)
+                        handleParam(param, schemaHolder, currentSchema, params, options, messages)
                     }
+                } else {
+                    handleParam(p, schemaHolder,currentSchema, params, options, messages)
                 }
+            }
 
         handleBodyPayload(operation, verb, restPath, schemaHolder, currentSchema, params, options, messages)
 
@@ -627,7 +626,7 @@ object RestActionBuilderV3 {
         // TODO: Adding description to the parameter occurs in multiple places. This can be refactored.
         when (p.`in`) {
             "query" -> params.add(QueryParam(name, gene, p.explode ?: true, p.style ?: Parameter.StyleEnum.FORM)
-                    .apply { this.description = description })
+                .apply { this.description = description })
             /*
                 a path is inside a Disruptive Gene, because there are cases in which we want to prevent
                 mutation. Note that 1.0 means can always be mutated
@@ -682,6 +681,7 @@ object RestActionBuilderV3 {
         options: Options,
         messages: MutableList<String>
     ) {
+
         // Return early if requestBody is missing
         val body = operation.requestBody ?: return
 
@@ -740,6 +740,7 @@ object RestActionBuilderV3 {
         } else {
             listOf()
         }
+
         val deref = obj.schema.`$ref`?.let { ref -> val name = ref.substringAfterLast("/")
             SchemaUtils.getReferenceSchema(schemaHolder, currentSchema, ref, messages) } ?: obj.schema
 
@@ -836,23 +837,23 @@ object RestActionBuilderV3 {
                 "integer" -> {
                     if (format == "int64") {
                         val data : MutableList<Long> = schema.enum
-                                .map{ if(it is String) it.toLong() else it as Long}
-                                .toMutableList()
+                            .map{ if(it is String) it.toLong() else it as Long}
+                            .toMutableList()
 
                         return EnumGene(name, (data).apply { add(42L) })
                     }
 
                     val data : MutableList<Int> = schema.enum
-                            .map{ if(it is String) it.toInt() else it as Int}
-                            .toMutableList()
+                        .map{ if(it is String) it.toInt() else it as Int}
+                        .toMutableList()
                     return EnumGene(name, data.apply { add(42) })
                 }
                 "number" -> {
                     //if (format == "double" || format == "float") {
                     //TODO: Is it always casted as Double even for Float??? Need test
                     val data : MutableList<Double> = schema.enum
-                            .map{ if(it is String) it.toDouble() else it as Double}
-                            .toMutableList()
+                        .map{ if(it is String) it.toDouble() else it as Double}
+                        .toMutableList()
                     return EnumGene(name, data.apply { add(42.0) })
                 }
                 else -> messages.add("Cannot handle enum of type: $type")
@@ -922,29 +923,12 @@ object RestActionBuilderV3 {
                     val arrayType: Schema<*> = if (schema.items == null) {
                         LoggingUtil.uniqueWarn(
                             log, "Array type '$name' is missing mandatory field 'items' to define its type." +
-                                " Defaulting to 'string'")
+                                    " Defaulting to 'string'")
                         Schema<Any>().also { it.type = "string" }
                     } else {
                         schema.items
                     }
-
-                    var itemXmlName = arrayType.xml?.name
-
-
-                    if (itemXmlName == null && !arrayType.`$ref`.isNullOrBlank()) {
-                        val refSchemaName = arrayType.`$ref`.substringAfterLast("/")
-
-                        val referencedSchema = currentSchema.schemaParsed.components?.schemas?.get(refSchemaName)
-
-                        if (referencedSchema != null) {
-                            itemXmlName = referencedSchema.xml?.name
-                        }
-                    }
-
-                    val itemName = itemXmlName ?: schema.xml?.name ?: name
-
-
-                    val template = getGene(itemName, arrayType, schemaHolder,currentSchema, history, referenceClassDef = null, options = options, messages = messages)
+                    val template = getGene(name + "_item", arrayType, schemaHolder,currentSchema, history, referenceClassDef = null, options = options, messages = messages)
 
                     //Could still have an empty []
 //                    if (template is CycleObjectGene) {
@@ -978,20 +962,16 @@ object RestActionBuilderV3 {
                             messages
                         )
                     }
-                    val new = ObjectWithAttributesGene(
+
+                    return ObjectWithAttributesGene(
                         name = schema.xml?.name ?: name,
                         fixedFields = fields,
                         refType = referenceClassDef,
                         isFixed = true,
                         template = null,
-                        additionalFields = null,
+                        additionalFields = mutableListOf(),
                         attributeNames = attributeNames
                     )
-
-                    if (!new.isValid)
-                        messages.add(new.validationErrors.toString())
-
-                    return new;
                 }else{
                     return createObjectGene(name, schema, schemaHolder,currentSchema, history, referenceClassDef, options, examples, messages)
                 }
@@ -1013,7 +993,7 @@ object RestActionBuilderV3 {
             return createGeneWithUnderSpecificTypeAndSchemaConstraints(
                 schema, name, schemaHolder,currentSchema, history, referenceClassDef,
                 options, null, isInPath, examples, messages)
-        //createNonObjectGeneWithSchemaConstraints(schema, name, StringGene::class.java, enableConstraintHandling) //StringGene(name)
+            //createNonObjectGeneWithSchemaConstraints(schema, name, StringGene::class.java, enableConstraintHandling) //StringGene(name)
         }
 
         throw IllegalArgumentException("Cannot handle combination $type/$format")
@@ -1035,8 +1015,8 @@ object RestActionBuilderV3 {
 
         val fields = schema.properties?.entries?.map {
             possiblyOptional(
-                    getGene(it.key, it.value, schemaHolder,currentSchema, history, referenceClassDef = null, options = options, messages = messages),
-                    schema.required?.contains(it.key)
+                getGene(it.key, it.value, schemaHolder,currentSchema, history, referenceClassDef = null, options = options, messages = messages),
+                schema.required?.contains(it.key)
             )
         } ?: listOf()
 
@@ -1158,18 +1138,15 @@ object RestActionBuilderV3 {
             ?: emptyList()
 
         if (attributeNames.isNotEmpty()) {
-            val new = ObjectWithAttributesGene(
+            return ObjectWithAttributesGene(
                 name = name,
                 fixedFields = fields,
                 refType = if (schema is ObjectSchema) referenceTypeName ?: schema.title else null,
-                isFixed = true,
+                isFixed = false,
                 template = additionalFieldTemplate,
-                additionalFields = null,
+                additionalFields = mutableListOf(),
                 attributeNames = attributeNames.toSet()
             )
-            if (!new.isValid)
-                messages.add(new.validationErrors.toString())
-            return new;
         }
 
         return assembleObjectGeneWithConstraints(
@@ -1376,7 +1353,7 @@ object RestActionBuilderV3 {
             add refClass with title of SchemaObject
             Man: shall we pop history here?
          */
-       return createGeneWithExampleAndDefault(exampleGene,defaultGene,mainGene,options,name)
+        return createGeneWithExampleAndDefault(exampleGene,defaultGene,mainGene,options,name)
     }
 
     private fun duplicateObjectWithExampleFields(name: String, mainGene: ObjectGene, exampleValue: Any): ObjectGene? {
@@ -1418,7 +1395,7 @@ object RestActionBuilderV3 {
             mainGene.isFixed,
             mainGene.template?.copy() as PairGene<StringGene,Gene>?,
             mainGene.additionalFields?.map { it.copy() as PairGene<StringGene,Gene>}?.toMutableList()
-            )
+        )
     }
 
     /**
@@ -1545,39 +1522,39 @@ object RestActionBuilderV3 {
                 )
             }
             LongGene::class.java -> LongGene(
-                    name,
-                    min = if (options.enableConstraintHandling) schema.minimum?.longValueExact() else null,
-                    max = if (options.enableConstraintHandling) schema.maximum?.longValueExact() else null,
-                    maxInclusive = maxInclusive,
-                    minInclusive = minInclusive
+                name,
+                min = if (options.enableConstraintHandling) schema.minimum?.longValueExact() else null,
+                max = if (options.enableConstraintHandling) schema.maximum?.longValueExact() else null,
+                maxInclusive = maxInclusive,
+                minInclusive = minInclusive
             )
             FloatGene::class.java -> FloatGene(
-                    name,
-                    min = if (options.enableConstraintHandling) schema.minimum?.toFloat() else null,
-                    max = if (options.enableConstraintHandling) schema.maximum?.toFloat() else null,
-                    maxInclusive = maxInclusive,
-                    minInclusive = minInclusive
+                name,
+                min = if (options.enableConstraintHandling) schema.minimum?.toFloat() else null,
+                max = if (options.enableConstraintHandling) schema.maximum?.toFloat() else null,
+                maxInclusive = maxInclusive,
+                minInclusive = minInclusive
             )
             DoubleGene::class.java -> DoubleGene(
-                    name,
-                    min = if (options.enableConstraintHandling) schema.minimum?.toDouble() else null,
-                    max = if (options.enableConstraintHandling) schema.maximum?.toDouble() else null,
-                    maxInclusive = maxInclusive,
-                    minInclusive = minInclusive
+                name,
+                min = if (options.enableConstraintHandling) schema.minimum?.toDouble() else null,
+                max = if (options.enableConstraintHandling) schema.maximum?.toDouble() else null,
+                maxInclusive = maxInclusive,
+                minInclusive = minInclusive
             )
             BigDecimalGene::class.java ->  BigDecimalGene(
-                    name,
-                    min = if (options.enableConstraintHandling) schema.minimum else null,
-                    max = if (options.enableConstraintHandling) schema.maximum else null,
-                    maxInclusive = maxInclusive,
-                    minInclusive = minInclusive
+                name,
+                min = if (options.enableConstraintHandling) schema.minimum else null,
+                max = if (options.enableConstraintHandling) schema.maximum else null,
+                maxInclusive = maxInclusive,
+                minInclusive = minInclusive
             )
             BigIntegerGene::class.java -> BigIntegerGene(
-                    name,
-                    min = if (options.enableConstraintHandling) schema.minimum?.toBigIntegerExact() else null,
-                    max = if (options.enableConstraintHandling) schema.maximum?.toBigIntegerExact() else null,
-                    maxInclusive = maxInclusive,
-                    minInclusive = minInclusive
+                name,
+                min = if (options.enableConstraintHandling) schema.minimum?.toBigIntegerExact() else null,
+                max = if (options.enableConstraintHandling) schema.maximum?.toBigIntegerExact() else null,
+                maxInclusive = maxInclusive,
+                minInclusive = minInclusive
             )
             // string, Base64StringGene and regex gene
             StringGene::class.java -> buildStringGene(name, options, schema, isInPath)
@@ -1588,17 +1565,17 @@ object RestActionBuilderV3 {
                     eg,  min and max
                     also, isInPath
                  */
-                 RegexHandler.createGeneForEcma262(schema.pattern).apply { this.name = name }
+                RegexHandler.createGeneForEcma262(schema.pattern).apply { this.name = name }
             }
             ArrayGene::class.java -> {
                 if (collectionTemplate == null)
                     throw IllegalArgumentException("cannot create ArrayGene when collectionTemplate is null")
                 ArrayGene(
-                        name,
-                        template = collectionTemplate,
-                        uniqueElements = if (options.enableConstraintHandling) schema.uniqueItems?:false else false,
-                        minSize = if (options.enableConstraintHandling) schema.minItems else null,
-                        maxSize = if (options.enableConstraintHandling) schema.maxItems else null
+                    name,
+                    template = collectionTemplate,
+                    uniqueElements = if (options.enableConstraintHandling) schema.uniqueItems?:false else false,
+                    minSize = if (options.enableConstraintHandling) schema.minItems else null,
+                    maxSize = if (options.enableConstraintHandling) schema.maxItems else null
                 )
             }
             else -> throw IllegalStateException("cannot create gene with constraints for gene:${geneClass.name}")
@@ -1639,7 +1616,7 @@ object RestActionBuilderV3 {
                     "the parser would read it as an array string or simply ignore it. "
             else ""
             messages.add("The use of 'example' inside a Schema Object is deprecated in OpenAPI. Rather use 'examples'." +
-                     " ${arrayM}Read value: $raw")
+                    " ${arrayM}Read value: $raw")
             //TODO a problem here is that currently number arrays would be ignored, and so this message would not written.
             //however, would need to check if still the case in future in new versions of the parser
         }
@@ -1653,12 +1630,12 @@ object RestActionBuilderV3 {
         val defaultGene = if(defaultValue != null){
             when{
                 NumberGene::class.java.isAssignableFrom(geneClass)
-                -> EnumGene("default", listOf(defaultValue.toString()),0,true)
+                    -> EnumGene("default", listOf(defaultValue.toString()),0,true)
 
                 geneClass == StringGene::class.java
                         || geneClass == Base64StringGene::class.java
                         || geneClass == RegexGene::class.java
-                -> EnumGene<String>("default", listOf(asRawString(defaultValue)),0,false)
+                    -> EnumGene<String>("default", listOf(asRawString(defaultValue)),0,false)
 
                 //TODO Arrays
                 else -> {
@@ -1676,12 +1653,12 @@ object RestActionBuilderV3 {
         val exampleGene = if(examples.isNotEmpty()){
             when{
                 NumberGene::class.java.isAssignableFrom(geneClass)
-                -> EnumGene(EXAMPLES_NAME, v,0,true, n)
+                    -> EnumGene(EXAMPLES_NAME, v,0,true, n)
 
                 geneClass == StringGene::class.java
                         || geneClass == Base64StringGene::class.java
                         || geneClass == RegexGene::class.java
-                -> EnumGene<String>(EXAMPLES_NAME, v,0,false, n)
+                    -> EnumGene<String>(EXAMPLES_NAME, v,0,false, n)
 
                 //TODO Arrays
                 else -> {
@@ -1877,21 +1854,21 @@ object RestActionBuilderV3 {
         val seen = mutableSetOf<String>()
         val duplicates = mutableSetOf<String>()
 
-       operation.parameters.forEach {
+        operation.parameters.forEach {
 
             val p = if(it.`$ref` != null)
                 SchemaUtils.getReferenceParameter(schemaHolder,currentSchema, it.`$ref`, messages = messages)
-           else
-               it
-           if(p != null) {
-               val key = p.`in` + "_" + p.name
-               if (!seen.contains(key)) {
-                   seen.add(key)
-                   selection.add(p)
-               } else {
-                   duplicates.add(key)
-               }
-           }
+            else
+                it
+            if(p != null) {
+                val key = p.`in` + "_" + p.name
+                if (!seen.contains(key)) {
+                    seen.add(key)
+                    selection.add(p)
+                } else {
+                    duplicates.add(key)
+                }
+            }
         }
 
         if (duplicates.isNotEmpty()) {
@@ -1905,7 +1882,7 @@ object RestActionBuilderV3 {
     @Deprecated("should be removed, no longer used")
     fun getModelsFromSwagger(swagger: OpenAPI,
                              modelCluster: MutableMap<String, ObjectGene>,
-                            options: Options
+                             options: Options
     ) {
 //        modelCluster.clear()
 //
