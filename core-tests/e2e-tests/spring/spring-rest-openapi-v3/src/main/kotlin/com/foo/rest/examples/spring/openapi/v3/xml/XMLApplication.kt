@@ -26,23 +26,38 @@ open class XMLApplication {
         }
     }
 
-    // Endpoint 1: JSON y XML con mismo nombre
+    /**
+     * Endpoint 1: Accepts both JSON and XML for the same endpoint.
+     * Uses a model with @XmlAttribute to test attribute parsing.
+     */
     @PostMapping(
-        "/book",
+        "/product",
         consumes = [MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE],
         produces = [MediaType.TEXT_PLAIN_VALUE]
     )
-    fun processBook(@RequestBody book: Book): String {
+    fun processProduct(@RequestBody product: Product): String {
+        // Test that XML attributes are properly parsed
+        if (product.sku.isBlank()) {
+            return "missing_sku"
+        }
+
+        if (product.name.isBlank()) {
+            return "missing_name"
+        }
+
+        // Test specific attribute values
         return when {
-            book.title.isBlank() -> "missing_title"
-            book.title == "The Great Book" && book.pages > 300 -> "great_book"
-            book.pages >= 100 -> "valid_book"
-            book.pages < 10 -> "too_short"
-            else -> "unknown_book"
+            product.sku == "SPECIAL-001" && product.price > 100.0 -> "premium_product"
+            product.sku.startsWith("SALE-") && product.price < 50.0 -> "sale_product"
+            product.price >= 1000.0 -> "luxury_product"
+            product.price <= 0 -> "invalid_price"
+            else -> "regular_product"
         }
     }
 
-    // Endpoint 2: Solo JSON (para comparar)
+    /**
+     * Endpoint 2: JSON only (for comparison with dual endpoint).
+     */
     @PostMapping(
         "/author",
         consumes = [MediaType.APPLICATION_JSON_VALUE],
@@ -58,35 +73,115 @@ open class XMLApplication {
         }
     }
 
-    // Endpoint 3: Responde XML (testear generación XML)
+    /**
+     * Endpoint 3: XML only with nested objects containing attributes.
+     * Tests complex XML structure with @XmlAttribute at multiple levels.
+     */
     @PostMapping(
-        "/create-book",
+        "/order",
+        consumes = [MediaType.APPLICATION_XML_VALUE],
+        produces = [MediaType.TEXT_PLAIN_VALUE]
+    )
+    fun processOrder(@RequestBody order: Order): String {
+        if (order.orderId.isBlank()) {
+            return "missing_order_id"
+        }
+
+        if (order.items.isEmpty()) {
+            return "empty_order"
+        }
+
+        var totalQuantity = 0
+        var hasValidItems = false
+
+        for (item in order.items) {
+            if (item.itemCode.isNotBlank() && item.quantity > 0) {
+                hasValidItems = true
+                totalQuantity += item.quantity
+            }
+        }
+
+        return when {
+            !hasValidItems -> "no_valid_items"
+            order.orderId.startsWith("VIP-") && totalQuantity > 10 -> "vip_bulk_order"
+            order.orderId.startsWith("VIP-") -> "vip_order"
+            totalQuantity > 100 -> "bulk_order"
+            totalQuantity > 0 -> "order_with_$totalQuantity"+"_items"
+            else -> "invalid_order"
+        }
+    }
+
+    /**
+     * Endpoint 4: Returns XML response with attributes.
+     */
+    @PostMapping(
+        "/create-product",
         consumes = [MediaType.TEXT_PLAIN_VALUE],
         produces = [MediaType.APPLICATION_XML_VALUE]
     )
-    fun createBook(@RequestBody title: String): Book {
-        return Book(
-            title = title,
-            pages = title.length * 10
+    fun createProduct(@RequestBody name: String): Product {
+        return Product(
+            sku = "GEN-${name.hashCode().toString().takeLast(4)}",
+            name = name,
+            price = name.length * 9.99
         )
     }
 }
 
 
-
 /* ===================== MODELS ===================== */
 
-@XmlRootElement(name = "book")
+/**
+ * Product model with XML attributes.
+ * The 'sku' field is an XML attribute, not an element.
+ * This tests that EvoMaster properly handles @XmlAttribute.
+ */
+@XmlRootElement(name = "product")
 @XmlAccessorType(XmlAccessType.FIELD)
-data class Book(
-    @XmlElement(name = "title")
-    var title: String = "",
+open class Product(
+    @field:XmlAttribute(name = "sku")
+    var sku: String = "",
 
-    @XmlElement(name = "pages")
-    var pages: Int = 0
+    @field:XmlElement(name = "name")
+    var name: String = "",
+
+    @field:XmlElement(name = "price")
+    var price: Double = 0.0
 )
 
+/**
+ * Author model - JSON only (no XML annotations).
+ */
 data class Author(
     var name: String = "",
     var birthYear: Int = 0
+)
+
+/**
+ * OrderItem with XML attribute for itemCode.
+ */
+@XmlRootElement(name = "item")
+@XmlAccessorType(XmlAccessType.FIELD)
+open class OrderItem(
+    @field:XmlAttribute(name = "itemCode")
+    var itemCode: String = "",
+
+    @field:XmlElement(name = "quantity")
+    var quantity: Int = 0
+)
+
+/**
+ * Order model with XML attribute and nested list of items with attributes.
+ * This tests:
+ * - @XmlAttribute at root level (orderId)
+ * - @XmlElement with list of objects that also have @XmlAttribute (items)
+ */
+@XmlRootElement(name = "order")
+@XmlAccessorType(XmlAccessType.FIELD)
+open class Order(
+    @field:XmlAttribute(name = "orderId")
+    var orderId: String = "",
+
+    @field:XmlElement(name = "item")
+    var items: List<OrderItem> = emptyList()
 )
