@@ -967,7 +967,7 @@ object RestActionBuilderV3 {
                         name = schema.xml?.name ?: name,
                         fixedFields = fields,
                         refType = referenceClassDef,
-                        isFixed = true,
+                        isFixed = false,
                         template = null,
                         additionalFields = mutableListOf(),
                         attributeNames = attributeNames
