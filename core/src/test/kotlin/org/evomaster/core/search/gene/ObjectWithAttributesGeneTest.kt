@@ -303,31 +303,6 @@ class ObjectWithAttributesGeneTest {
 
     private fun assertTue(any: Any) {}
 
-
-    @Test
-    fun testXmlFailsOnDuplicateChildNames() {
-        val obj = ObjectWithAttributesGene(
-            name = "parent",
-            fixedFields = listOf(
-                StringGene("childDup", value = "a"),
-                StringGene("childDup", value = "b")
-            ),
-            isFixed = true,
-            attributeNames = emptySet()
-        )
-
-        assertFalse(obj.isValid)
-        assertTrue(
-            obj.validationErrors.any { it.contains("Duplicate child elements not allowed in XML") },
-            "Expected duplicate child warning in validation errors, but got: ${obj.validationErrors}"
-        )
-
-        val xml = obj.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        assertNotNull(xml)
-
-
-    }
-
     @Test
     fun testArrayGeneWithAttributesInsideObjectGene() {
 

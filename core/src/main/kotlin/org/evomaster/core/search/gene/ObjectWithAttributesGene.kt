@@ -41,14 +41,6 @@ class ObjectWithAttributesGene(
             errors.add("#text cannot be used as an attribute in XML")
         }
 
-        val childFields = includedFields.filter { !attributeNames.contains(it.name) }
-
-        //2) Child names must be unique (XML does not allow repeated element names at this level)
-        val duplicated = childFields.groupBy { it.name }.filter { it.value.size > 1 }.keys
-        if (duplicated.isNotEmpty()) {
-            errors.add("Duplicate child elements not allowed in XML: $duplicated")
-        }
-
         errors
     }
 
