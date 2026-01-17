@@ -908,30 +908,16 @@ object GeneSamplerForTests {
     fun sampleObjectGeneWithAttributes(rand: Randomness): ObjectWithAttributesGene {
 
         val selection = geneClasses.filter { !it.isAbstract }
-        val isFixed = rand.nextBoolean()
+        rand.nextBoolean()
 
-        return if (isFixed) {
-            ObjectWithAttributesGene(
-                name = "rand ObjectGeneWithAttributes ${rand.nextInt()}",
-                fields = listOf(
-                    sample(rand.choose(selection), rand).apply { name += "_0" },
-                    sample(rand.choose(selection), rand).apply { name += "_1" },
-                    sample(rand.choose(selection), rand).apply { name += "_2" },
-                )
+        return ObjectWithAttributesGene(
+            name = "rand ObjectGeneWithAttributes ${rand.nextInt()}",
+            fields = listOf(
+                sample(rand.choose(selection), rand).apply { name += "_0" },
+                sample(rand.choose(selection), rand).apply { name += "_1" },
+                sample(rand.choose(selection), rand).apply { name += "_2" },
             )
-        }else{
-            ObjectWithAttributesGene(
-                name = "rand ObjectGeneWithAttributes ${rand.nextInt()}",
-                fixedFields = listOf(
-                    sample(rand.choose(selection), rand).apply { name += "_0" },
-                    sample(rand.choose(selection), rand).apply { name += "_1" },
-                    sample(rand.choose(selection), rand).apply { name += "_2" },
-                ),
-                refType = null,
-                isFixed = isFixed,
-                template = PairGene("template", sampleStringGene(rand), samplePrintableTemplate(selection, rand)),
-                additionalFields = mutableListOf()
-            )
-        }
+        )
+
     }
 }
