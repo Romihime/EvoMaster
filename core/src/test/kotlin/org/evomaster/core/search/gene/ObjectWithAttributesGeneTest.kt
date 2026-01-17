@@ -285,23 +285,22 @@ class ObjectWithAttributesGeneTest {
     @Test
     fun testTextCannotBeAttribute() {
 
-        val gene = ObjectWithAttributesGene(
+        val exception = assertThrows<IllegalArgumentException> {
+            ObjectWithAttributesGene(
                 name = "node",
                 fixedFields = listOf(
                     StringGene("#text", "value")
                 ),
                 isFixed = true,
                 attributeNames = setOf("#text")
+            )
+        }
+
+        assertTrue(
+            exception.message?.contains("#text cannot be used as an attribute in XML") == true
         )
-
-        assertFalse(gene.isValid)
-        assertTrue(gene.validationErrors.any{ it.contains("#text cannot be used as an attribute in XML")})
-
-        val xml = gene.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        assertNotNull(xml)
     }
 
-    private fun assertTue(any: Any) {}
 
     @Test
     fun testArrayGeneWithAttributesInsideObjectGene() {

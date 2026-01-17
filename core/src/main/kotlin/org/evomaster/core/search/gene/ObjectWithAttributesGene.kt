@@ -7,6 +7,7 @@ import org.evomaster.core.search.gene.placeholder.CycleObjectGene
 import org.evomaster.core.search.gene.string.StringGene
 import org.evomaster.core.search.gene.utils.GeneUtils
 import org.evomaster.core.search.gene.wrapper.OptionalGene
+import org.evomaster.core.utils.CollectionUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -23,11 +24,8 @@ class ObjectWithAttributesGene(
     companion object {
         private val log: Logger = LoggerFactory.getLogger(ObjectWithAttributesGene::class.java)
     }
-    /**
-     * List of validation errors found in this object's structure
-     */
-    val validationErrors: List<String> by lazy {
-        val errors = mutableListOf<String>()
+
+    init {
 
         val includedFields = fixedFields
             .filter { it !is CycleObjectGene }
@@ -36,19 +34,11 @@ class ObjectWithAttributesGene(
 
         val attributeFields = includedFields.filter { attributeNames.contains(it.name) }
 
-        //1) "#text" CANNOT be an attribute
+        //"#text" CANNOT be an attribute
         if (attributeFields.any { it.name == "#text" }) {
-            errors.add("#text cannot be used as an attribute in XML")
+            throw IllegalArgumentException("#text cannot be used as an attribute in XML")
         }
-
-        errors
     }
-
-    /**
-     * @return true if this object's structure is valid according to XML rules
-     */
-    val isValid: Boolean
-        get() = validationErrors.isEmpty()
 
     constructor(name: String, fields: List<Gene>, refType: String? = null) : this(
         name, fixedFields = fields, refType = refType, isFixed = true, template = null, additionalFields = null, attributeNames = emptySet()
@@ -95,12 +85,6 @@ class ObjectWithAttributesGene(
     ): String {
         if (mode != GeneUtils.EscapeMode.XML) {
             return super.getValueAsPrintableString(previousGenes, mode, targetFormat, extraCheck)
-        }
-        
-        if (!isValid) {
-           validationErrors.forEach { error ->
-               LoggingUtil.uniqueWarn(log, "XML Schema validation error in '$name' : $error")
-           }
         }
 
         val includedFields = fixedFields

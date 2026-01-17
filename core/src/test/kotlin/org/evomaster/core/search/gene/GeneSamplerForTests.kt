@@ -914,18 +914,18 @@ object GeneSamplerForTests {
             ObjectWithAttributesGene(
                 name = "rand ObjectGeneWithAttributes ${rand.nextInt()}",
                 fields = listOf(
-                    sample(rand.choose(selection), rand),
-                    sample(rand.choose(selection), rand),
-                    sample(rand.choose(selection), rand)
+                    sample(rand.choose(selection), rand).apply { name += "_0" },
+                    sample(rand.choose(selection), rand).apply { name += "_1" },
+                    sample(rand.choose(selection), rand).apply { name += "_2" },
                 )
             )
         }else{
             ObjectWithAttributesGene(
                 name = "rand ObjectGeneWithAttributes ${rand.nextInt()}",
                 fixedFields = listOf(
-                    sample(rand.choose(selection), rand),
-                    sample(rand.choose(selection), rand),
-                    sample(rand.choose(selection), rand)
+                    sample(rand.choose(selection), rand).apply { name += "_0" },
+                    sample(rand.choose(selection), rand).apply { name += "_1" },
+                    sample(rand.choose(selection), rand).apply { name += "_2" },
                 ),
                 refType = null,
                 isFixed = isFixed,
@@ -934,6 +934,4 @@ object GeneSamplerForTests {
             )
         }
     }
-
-
 }

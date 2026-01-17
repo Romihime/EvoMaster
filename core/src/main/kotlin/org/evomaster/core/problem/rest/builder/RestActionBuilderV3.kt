@@ -967,7 +967,7 @@ object RestActionBuilderV3 {
                         name = schema.xml?.name ?: name,
                         fixedFields = fields,
                         refType = referenceClassDef,
-                        isFixed = false,
+                        isFixed = true,
                         template = null,
                         additionalFields = mutableListOf(),
                         attributeNames = attributeNames
@@ -1142,8 +1142,8 @@ object RestActionBuilderV3 {
                 name = name,
                 fixedFields = fields,
                 refType = if (schema is ObjectSchema) referenceTypeName ?: schema.title else null,
-                isFixed = false,
-                template = additionalFieldTemplate,
+                isFixed = true,
+                template = null,
                 additionalFields = mutableListOf(),
                 attributeNames = attributeNames.toSet()
             )

@@ -142,14 +142,11 @@ internal class ObjectGeneTest {
     @Test
     fun testXmlArrayPrinting() {
 
-        // Creamos un gene hijo con el nombre correcto (simulando schema.items.xml.name="photoUrl")
         val item1 = StringGene("sarasa1", "yC")
         val item2 = StringGene("lala2", "2ctkEeIof")
 
-        // Creamos el array gene
         val array = ArrayGene("photoUrls", StringGene("item"), elements = mutableListOf(item1, item2))
 
-        // Forzamos ObjectGene a serializarlo
         val root = ObjectGene(name = "root", fields = listOf(array))
 
         val xml = root.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
