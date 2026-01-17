@@ -34,7 +34,6 @@ class XMLEMTest : SpringTestBase() {
         }
     }
 
-    @Disabled
     @Test
     fun testRunEM() {
 
@@ -46,29 +45,39 @@ class XMLEMTest : SpringTestBase() {
             { args: MutableList<String> ->
 
                 val solution = initAndRun(args)
-
                 assertTrue(solution.individuals.size >= 1)
 
-                // Test dual JSON/XML endpoint with @XmlAttribute
-                // The 'sku' field is an XML attribute, testing proper attribute parsing
-                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/product", "regular_product")
-                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/product", "premium_product")
+                /* ========= string / person ========= */
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/receive-string-respond-xml", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/receive-string-respond-xml", null)
 
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/receive-xml-respond-string", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/receive-xml-respond-string", null)
 
-                // Test JSON-only endpoint (for comparison)
-                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/author", null)
-                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/author", "young_author")
-                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/author", "classic_author")
+                /* ========= nesting ========= */
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/employee", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/employee", null)
 
-                // Test XML-only endpoint with nested @XmlAttribute
-                // Both 'orderId' and 'itemCode' are XML attributes
-                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/order", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/company", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/company", null)
 
-                // Test endpoint that produces XML response with attributes
-                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/xml/create-product", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/department", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/department", null)
 
-                // Verify no 500 errors (proper XML parsing)
-                assertNone(solution, HttpVerb.POST, 500)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/organization", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/organization", null)
+
+                /* ========= attributes ========= */
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/project", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/project", null)
+
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/projects", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/projects", null)
+
+                /* ========= person with attributes ========= */
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/person-with-attr", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/person-with-attr", null)
+
             },
             3,
         )

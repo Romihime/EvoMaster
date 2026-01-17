@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import javax.xml.bind.annotation.XmlAccessType
 import javax.xml.bind.annotation.XmlAccessorType
+import javax.xml.bind.annotation.XmlAnyElement
 import javax.xml.bind.annotation.XmlAttribute
 import javax.xml.bind.annotation.XmlElement
 import javax.xml.bind.annotation.XmlRootElement
@@ -26,162 +27,297 @@ open class XMLApplication {
         }
     }
 
-    /**
-     * Endpoint 1: Accepts both JSON and XML for the same endpoint.
-     * Uses a model with @XmlAttribute to test attribute parsing.
-     */
+    /* ===================== ENDPOINTS ===================== */
+
     @PostMapping(
-        "/product",
-        consumes = [MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE],
-        produces = [MediaType.TEXT_PLAIN_VALUE]
+        "/receive-string-respond-xml",
+        consumes = ["text/plain"],
+        produces = ["application/xml"]
     )
-    fun processProduct(@RequestBody product: Product): String {
-        // Test that XML attributes are properly parsed
-        if (product.sku.isBlank()) {
-            return "missing_sku"
-        }
+    fun stringToXml(@RequestBody body: String): ResponseEntity<Person> {
 
-        if (product.name.isBlank()) {
-            return "missing_name"
-        }
+        if (body.isBlank() || body.length > 20)
+            return ResponseEntity.status(400).build()
 
-        // Test specific attribute values
-        return when {
-            product.sku == "SPECIAL-001" && product.price > 100.0 -> "premium_product"
-            product.sku.startsWith("SALE-") && product.price < 50.0 -> "sale_product"
-            product.price >= 1000.0 -> "luxury_product"
-            product.price <= 0 -> "invalid_price"
-            else -> "regular_product"
-        }
+        return ResponseEntity.status(200)
+            .body(Person(name = body, age = body.length))
     }
 
-    /**
-     * Endpoint 2: JSON only (for comparison with dual endpoint).
-     */
     @PostMapping(
-        "/author",
-        consumes = [MediaType.APPLICATION_JSON_VALUE],
-        produces = [MediaType.TEXT_PLAIN_VALUE]
+        "/receive-xml-respond-string",
+        consumes = ["application/xml"],
+        produces = ["text/plain"]
     )
-    fun processAuthor(@RequestBody author: Author): String {
-        return when {
-            author.name.isBlank() -> "missing_name"
-            author.name == "Jane Doe" && author.birthYear < 1950 -> "legendary_author"
-            author.birthYear > 2000 -> "young_author"
-            author.birthYear in 1900..1999 -> "classic_author"
-            else -> "ancient_author"
-        }
+    fun xmlToString(@RequestBody person: Person): ResponseEntity<String> {
+
+        if (!isValid(person))
+            return ResponseEntity.status(400).build()
+
+        return ResponseEntity.status(200).body("not ok")
     }
 
-    /**
-     * Endpoint 3: XML only with nested objects containing attributes.
-     * Tests complex XML structure with @XmlAttribute at multiple levels.
-     */
     @PostMapping(
-        "/order",
-        consumes = [MediaType.APPLICATION_XML_VALUE],
-        produces = [MediaType.TEXT_PLAIN_VALUE]
+        "/employee",
+        consumes = ["application/xml"],
+        produces = ["text/plain"]
     )
-    fun processOrder(@RequestBody order: Order): String {
-        if (order.orderId.isBlank()) {
-            return "missing_order_id"
+    fun employee(@RequestBody employee: Employee): ResponseEntity<String> {
+
+        if (!isValid(employee))
+            return ResponseEntity.status(400).build()
+
+        return ResponseEntity.status(200)
+            .body(
+                if (employee.role == Role.ADMIN && employee.person.age > 30)
+                    "admin"
+                else
+                    "not admin or too young"
+            )
+    }
+
+    @PostMapping(
+        "/company",
+        consumes = ["application/xml"],
+        produces = ["text/plain"]
+    )
+    fun company(@RequestBody company: Company): ResponseEntity<String> {
+
+        if (!isValid(company))
+            return ResponseEntity.status(400).build()
+
+        return ResponseEntity.status(200)
+            .body(if (company.employees.isEmpty()) "small company" else "big company")
+    }
+
+    @PostMapping(
+        "/department",
+        consumes = ["application/xml"],
+        produces = ["text/plain"]
+    )
+    fun department(@RequestBody department: Department): ResponseEntity<String> {
+
+        if (!isValid(department))
+            return ResponseEntity.status(400).build()
+
+        return ResponseEntity.status(200)
+            .body("department with ${department.employees.size + 1} employees")
+    }
+
+    @PostMapping(
+        "/organization",
+        consumes = ["application/xml"],
+        produces = ["text/plain"]
+    )
+    fun organization(@RequestBody organization: Organization): ResponseEntity<String> {
+
+        if (!isValid(organization))
+            return ResponseEntity.status(400).build()
+
+        return ResponseEntity.status(200)
+            .body("organization with ${organization.people.size} people")
+    }
+
+    @PostMapping(
+        "/project",
+        consumes = ["application/xml"],
+        produces = ["text/plain"]
+    )
+    fun project(@RequestBody project: Project): ResponseEntity<String> {
+
+        if (!isValid(project))
+            return ResponseEntity.status(400).build()
+
+        var adults = 0
+        for (m in project.members) {
+            if (m.id.isNotBlank() && m.age >= 18)
+                adults++
         }
 
-        if (order.items.isEmpty()) {
-            return "empty_order"
-        }
+        return ResponseEntity.status(200).body(
+            if (adults > 0)
+                "project ${project.code} has $adults adult members"
+            else
+                "project ${project.code} has only minors"
+        )
+    }
 
-        var totalQuantity = 0
-        var hasValidItems = false
+    @PostMapping(
+        "/projects",
+        consumes = ["application/xml"],
+        produces = ["text/plain"]
+    )
+    fun postProjects(@RequestBody list: ProjectList): ResponseEntity<String> {
 
-        for (item in order.items) {
-            if (item.itemCode.isNotBlank() && item.quantity > 0) {
-                hasValidItems = true
-                totalQuantity += item.quantity
+        if (!isValid(list))
+            return ResponseEntity.status(400).build()
+
+        var members = 0
+        var hasCode = false
+
+        for (p in list.projects) {
+            if (p.code.isNotBlank())
+                hasCode = true
+            for (m in p.members) {
+                if (m.id.isNotBlank())
+                    members++
             }
         }
 
-        return when {
-            !hasValidItems -> "no_valid_items"
-            order.orderId.startsWith("VIP-") && totalQuantity > 10 -> "vip_bulk_order"
-            order.orderId.startsWith("VIP-") -> "vip_order"
-            totalQuantity > 100 -> "bulk_order"
-            totalQuantity > 0 -> "order_with_$totalQuantity"+"_items"
-            else -> "invalid_order"
-        }
+        return ResponseEntity.status(200)
+            .body(
+                if (hasCode && members > 0)
+                    "valid projects with $members members"
+                else
+                    "invalid projects"
+            )
     }
 
-    /**
-     * Endpoint 4: Returns XML response with attributes.
-     */
     @PostMapping(
-        "/create-product",
-        consumes = [MediaType.TEXT_PLAIN_VALUE],
-        produces = [MediaType.APPLICATION_XML_VALUE]
+        "/person-with-attr",
+        consumes = ["application/xml"],
+        produces = ["text/plain"]
     )
-    fun createProduct(@RequestBody name: String): Product {
-        return Product(
-            sku = "GEN-${name.hashCode().toString().takeLast(4)}",
-            name = name,
-            price = name.length * 9.99
-        )
+    fun personWithAttr(@RequestBody person: PersonWithAttr): ResponseEntity<String> {
+
+        if (!isValid(person))
+            return ResponseEntity.status(400).build()
+
+        return if (person.age >= 65)
+            ResponseEntity.status(200).body("senior ${person.id}")
+        else
+            ResponseEntity.status(200).body("adult ${person.id}")
     }
+
+    /* ===================== WHITE-BOX VALIDATION ===================== */
+
+    private fun isValid(p: Person): Boolean =
+        p.name.isNotBlank() &&
+                p.name.length <= 20 &&
+                p.age in 0..120 &&
+                !(p.name == "admin" && p.age < 18)
+
+    private fun isValid(e: Employee): Boolean =
+        isValid(e.person) &&
+                !(e.role == Role.ADMIN && e.person.age < 21)
+
+    private fun isValid(c: Company): Boolean =
+        c.name.isNotBlank() &&
+                c.name.length >= 3 &&
+                c.employees.size <= 50
+
+    private fun isValid(d: Department): Boolean =
+        d.name.isNotBlank() &&
+                d.name != "root" &&
+                d.employees.size <= 10
+
+    private fun isValid(o: Organization): Boolean =
+        o.name.isNotBlank() &&
+                (o.people.size + o.employees.size + o.companies.size) <= 100 &&
+                !(o.companies.isNotEmpty() && o.people.isEmpty())
+
+    private fun isValid(p: PersonWithAttr): Boolean =
+        p.id.isNotBlank() &&
+                p.id.matches(Regex("[A-Z]{2}[0-9]{2}")) &&
+                p.name.isNotBlank() &&
+                p.age in 0..150
+
+    private fun isValid(p: Project): Boolean =
+        p.code.isNotBlank() &&
+                p.code.length == 3 &&
+                p.members.isNotEmpty() &&
+                p.members.size <= 10
+
+    private fun isValid(pl: ProjectList): Boolean =
+        pl.projects.isNotEmpty() &&
+                pl.projects.size <= 5 &&
+                pl.projects.any { it.code.startsWith("A") }
 }
 
+/* ===================== MODELS (JAXB) ===================== */
 
-/* ===================== MODELS ===================== */
 
-/**
- * Product model with XML attributes.
- * The 'sku' field is an XML attribute, not an element.
- * This tests that EvoMaster properly handles @XmlAttribute.
- */
-@XmlRootElement(name = "product")
 @XmlAccessorType(XmlAccessType.FIELD)
-open class Product(
-    @field:XmlAttribute(name = "sku")
-    var sku: String = "",
+open class XmlExtension(
+    @XmlAnyElement(lax = true)
+    var any: List<Any> = emptyList()
+)
 
-    @field:XmlElement(name = "name")
+@XmlRootElement(name = "person")
+@XmlAccessorType(XmlAccessType.FIELD)
+open class Person(
     var name: String = "",
-
-    @field:XmlElement(name = "price")
-    var price: Double = 0.0
+    var age: Int = 0
 )
 
-/**
- * Author model - JSON only (no XML annotations).
- */
-data class Author(
+@XmlRootElement(name = "employee")
+@XmlAccessorType(XmlAccessType.FIELD)
+open class Employee(
+    var person: Person = Person(),
+    var role: Role = Role.USER
+)
+
+@XmlRootElement(name = "company")
+@XmlAccessorType(XmlAccessType.FIELD)
+open class Company(
     var name: String = "",
-    var birthYear: Int = 0
+    @field:XmlElement(name = "Person", namespace = "")
+    var employees: List<Person> = emptyList()
 )
 
-/**
- * OrderItem with XML attribute for itemCode.
- */
-@XmlRootElement(name = "item")
-@XmlAccessorType(XmlAccessType.FIELD)
-open class OrderItem(
-    @field:XmlAttribute(name = "itemCode")
-    var itemCode: String = "",
+enum class Role { ADMIN, USER, GUEST }
 
-    @field:XmlElement(name = "quantity")
-    var quantity: Int = 0
+@XmlRootElement(name = "department")
+@XmlAccessorType(XmlAccessType.FIELD)
+open class Department(
+    var name: String = "",
+    @field:XmlElement(name = "Employee", namespace = "")
+    var employees: List<Employee> = emptyList(),
+    @field:XmlElement(name = "Department", namespace = "")
+    var subDepartments: List<Department> = emptyList()
 )
 
-/**
- * Order model with XML attribute and nested list of items with attributes.
- * This tests:
- * - @XmlAttribute at root level (orderId)
- * - @XmlElement with list of objects that also have @XmlAttribute (items)
- */
-@XmlRootElement(name = "order")
+@XmlRootElement(name = "organization")
 @XmlAccessorType(XmlAccessType.FIELD)
-open class Order(
-    @field:XmlAttribute(name = "orderId")
-    var orderId: String = "",
+open class Organization(
+    var name: String = "",
+    @field:XmlElement(name = "Person", namespace = "")
+    var people: List<Person> = emptyList(),
+    @field:XmlElement(name = "Employee", namespace = "")
+    var employees: List<Employee> = emptyList(),
+    @field:XmlElement(name = "Company", namespace = "")
+    var companies: List<Company> = emptyList()
+)
 
-    @field:XmlElement(name = "item")
-    var items: List<OrderItem> = emptyList()
+@XmlRootElement(name = "personWithAttr")
+@XmlAccessorType(XmlAccessType.FIELD)
+open class PersonWithAttr(
+    @XmlAttribute(name = "id")
+    var id: String = "",
+    var name: String = "",
+    var age: Int = 0,
+    // makes ObjectGene NOT fixed
+    @XmlAnyElement(lax = true)
+    var any: List<Any> = emptyList()
+)
+
+@XmlRootElement(name = "project")
+@XmlAccessorType(XmlAccessType.FIELD)
+open class Project(
+    @XmlAttribute(name = "code")
+    var code: String = "",
+    @field:XmlElement(name = "PersonWithAttr", namespace = "")
+    var members: List<PersonWithAttr> = emptyList(),
+    // makes ObjectGene NOT fixed
+    @XmlAnyElement(lax = true)
+    var any: List<Any> = emptyList()
+)
+
+@XmlRootElement(name = "projectList")
+@XmlAccessorType(XmlAccessType.FIELD)
+open class ProjectList(
+    @field:XmlElement(name = "Project", namespace = "")
+    var projects: List<Project> = emptyList(),
+    // makes ObjectGene NOT fixed
+    @XmlAnyElement(lax = true)
+    var any: List<Any> = emptyList()
 )
