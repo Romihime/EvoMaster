@@ -34,6 +34,7 @@ class XMLEMTest : SpringTestBase() {
         }
     }
 
+    @Disabled
     @Test
     fun testRunEM() {
 

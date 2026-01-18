@@ -391,12 +391,11 @@ open class ObjectGene(
             }
 
             is ArrayGene<*> -> {
-                val elements = v.getViewOfElements().joinToString("") { elem ->
+                v.getViewOfElements().joinToString("", "<$name>", "</$name>") { elem ->
                     val leaf = (elem as? Gene)?.getLeafGene()
                     val itemName = (leaf as? Gene)?.name ?: name
                     serializeXml(previousGenes, itemName, leaf, targetFormat)
                 }
-                "<$name>$elements</$name>"
             }
 
             //Gene
