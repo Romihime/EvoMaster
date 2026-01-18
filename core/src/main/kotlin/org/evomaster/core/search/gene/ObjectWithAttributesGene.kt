@@ -61,6 +61,65 @@ class ObjectWithAttributesGene(
         )
     }
 
+    override fun unsafeCopyValueFrom(other: Gene): Boolean {
+
+        if (other !is ObjectGene) {
+            return false
+        }
+
+        // Si es ObjectWithAttributesGene, verificar compatibilidad de atributos
+        if (other is ObjectWithAttributesGene) {
+            // Solo fallar si los atributos son incompatibles
+            // (un campo es atributo en uno pero no en el otro)
+            val thisAttrs = this.attributeNames
+            val otherAttrs = other.attributeNames
+
+            // Verificar que no haya conflictos:
+            // Si un campo existe en ambos, debe ser atributo en ambos o en ninguno
+            for (field in fixedFields) {
+                val otherField = other.fixedFields.find { it.name == field.name }
+                if (otherField != null) {
+                    val isAttrInThis = thisAttrs.contains(field.name)
+                    val isAttrInOther = otherAttrs.contains(field.name)
+
+                    // Si difieren, no son compatibles
+                    if (isAttrInThis != isAttrInOther) {
+                        return false
+                    }
+                }
+            }
+        }
+
+        var ok = true
+
+        for (field in fixedFields) {
+            val toCopy = other.fixedFields.find { it.name == field.name }
+                ?: continue
+
+            val copied = field.unsafeCopyValueFrom(toCopy)
+
+            if (!copied && field.containsSameValueAs(toCopy)) {
+                continue
+            }
+
+            ok = ok && copied
+        }
+
+        return ok
+    }
+
+    override fun containsSameValueAs(other: Gene): Boolean {
+
+        if (other !is ObjectWithAttributesGene) {
+            return false
+        }
+
+        if (this.attributeNames != other.attributeNames) {
+            return false
+        }
+
+        return super.containsSameValueAs(other)
+    }
 
     private fun printAttribute(
         previousGenes: List<Gene>,

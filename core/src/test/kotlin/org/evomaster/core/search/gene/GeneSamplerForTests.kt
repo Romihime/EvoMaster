@@ -908,16 +908,30 @@ object GeneSamplerForTests {
     fun sampleObjectGeneWithAttributes(rand: Randomness): ObjectWithAttributesGene {
 
         val selection = geneClasses.filter { !it.isAbstract }
-        rand.nextBoolean()
+
+        // Crear los campos
+        val fields = listOf(
+            sample(rand.choose(selection), rand).apply { name += "_0" },
+            sample(rand.choose(selection), rand).apply { name += "_1" },
+            sample(rand.choose(selection), rand).apply { name += "_2" }
+        )
+
+        // Decidir cuáles son atributos (50% de probabilidad para cada campo)
+        val attributeNames = fields
+            .filter { rand.nextBoolean() }  // 50% chance de ser atributo
+            .map { it.name }
+            .toSet()
+            .filter { it != "#text" }  // #text no puede ser atributo
+            .toSet()
 
         return ObjectWithAttributesGene(
             name = "rand ObjectGeneWithAttributes ${rand.nextInt()}",
-            fields = listOf(
-                sample(rand.choose(selection), rand).apply { name += "_0" },
-                sample(rand.choose(selection), rand).apply { name += "_1" },
-                sample(rand.choose(selection), rand).apply { name += "_2" },
-            )
+            fixedFields = fields,
+            refType = null,
+            isFixed = true,
+            template = null,
+            additionalFields = null,
+            attributeNames = attributeNames
         )
-
     }
 }
