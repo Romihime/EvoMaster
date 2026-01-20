@@ -929,8 +929,7 @@ object RestActionBuilderV3 {
                         schema.items
                     }
 
-
-                    val template = getGene(name + "_child", arrayType, schemaHolder,currentSchema, history, referenceClassDef = null, options = options, messages = messages)//Could still have an empty []
+                    val template = getGene(name + "_item", arrayType, schemaHolder,currentSchema, history, referenceClassDef = null, options = options, messages = messages)//Could still have an empty []
 //                    if (template is CycleObjectGene) {
 //                        return CycleObjectGene("<array> ${template.name}")
 //                    }

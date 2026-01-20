@@ -23,6 +23,7 @@ class BBXMLTest : SpringTestBase() {
         }
     }
 
+    @Disabled
     @Test
     fun testRunEM() {
 

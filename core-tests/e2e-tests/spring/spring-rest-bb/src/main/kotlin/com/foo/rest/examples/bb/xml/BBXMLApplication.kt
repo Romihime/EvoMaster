@@ -285,7 +285,6 @@ open class Project(
 open class ProjectList(
     @field:XmlElement(name = "Project", namespace = "")
     var projects: List<Project> = emptyList(),
-    // makes ObjectGene NOT fixed
     @field:XmlElement(name = "extras")
     var extras: XmlExtras? = null
 )
