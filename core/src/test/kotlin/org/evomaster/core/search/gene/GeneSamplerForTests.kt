@@ -917,12 +917,12 @@ object GeneSamplerForTests {
         )
 
         // Decidir cuáles son atributos (50% de probabilidad para cada campo)
-        val attributeNames = fields
+        /*val attributeNames = fields
             .filter { rand.nextBoolean() }  // 50% chance de ser atributo
             .map { it.name }
             .toSet()
             .filter { it != "#text" }  // #text no puede ser atributo
-            .toSet()
+            .toSet()*/
 
         return ObjectWithAttributesGene(
             name = "rand ObjectGeneWithAttributes ${rand.nextInt()}",
@@ -931,7 +931,7 @@ object GeneSamplerForTests {
             isFixed = true,
             template = null,
             additionalFields = null,
-            attributeNames = attributeNames
+            attributeNames = emptySet() //attributeNames
         )
     }
 }
