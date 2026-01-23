@@ -916,7 +916,14 @@ object GeneSamplerForTests {
             sample(rand.choose(selection), rand).apply { name += "_2" }
         )
 
-        // Decidir cuáles son atributos (50% de probabilidad para cada campo)
+        val seed = rand.nextInt(0,10)
+
+        val attributeNames = when {
+            seed < 7 -> emptySet()
+            seed < 9 -> setOf(fields[0].name).filter{ it != "#text" }.toSet()
+            else -> setOf(fields[0].name,fields[1].name).filter{ it != "#text" }.toSet()
+        }
+
         /*val attributeNames = fields
             .filter { rand.nextBoolean() }  // 50% chance de ser atributo
             .map { it.name }
@@ -931,7 +938,7 @@ object GeneSamplerForTests {
             isFixed = true,
             template = null,
             additionalFields = null,
-            attributeNames = emptySet() //attributeNames
+            attributeNames = attributeNames
         )
     }
 }
