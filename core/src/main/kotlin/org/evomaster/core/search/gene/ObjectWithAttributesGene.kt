@@ -67,6 +67,29 @@ class ObjectWithAttributesGene(
             return false
         }
 
+        // Si es ObjectWithAttributesGene, verificar compatibilidad de atributos
+        if (other is ObjectWithAttributesGene) {
+            // Solo fallar si los atributos son incompatibles
+            // (un campo es atributo en uno pero no en el otro)
+            val thisAttrs = this.attributeNames
+            val otherAttrs = other.attributeNames
+
+            // Verificar que no haya conflictos:
+            // Si un campo existe en ambos, debe ser atributo en ambos o en ninguno
+            for (field in fixedFields) {
+                val otherField = other.fixedFields.find { it.name == field.name }
+                if (otherField != null) {
+                    val isAttrInThis = thisAttrs.contains(field.name)
+                    val isAttrInOther = otherAttrs.contains(field.name)
+
+                    // Si difieren, no son compatibles
+                    if (isAttrInThis != isAttrInOther) {
+                        return false
+                    }
+                }
+            }
+        }
+
         var ok = true
 
         for (field in fixedFields) {
@@ -87,12 +110,24 @@ class ObjectWithAttributesGene(
 
     override fun containsSameValueAs(other: Gene): Boolean {
 
-        // Permitimos comparar contra ObjectGene también
         if (other !is ObjectGene) {
             return false
         }
 
-        // Delegar completamente al valor de los fields
+        // If other is also ObjectWithAttributesGene, attributeNames must match
+        // If other is plain ObjectGene, this.attributeNames must be empty to produce same XML
+        if (other is ObjectWithAttributesGene) {
+            if (this.attributeNames != other.attributeNames) {
+                return false
+            }
+        } else {
+            // other is ObjectGene but not ObjectWithAttributesGene
+            // They can only have same value if this has no attributes
+            if (this.attributeNames.isNotEmpty()) {
+                return false
+            }
+        }
+
         return super.containsSameValueAs(other)
     }
 
