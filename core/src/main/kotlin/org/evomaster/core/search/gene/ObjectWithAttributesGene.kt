@@ -106,7 +106,7 @@ class ObjectWithAttributesGene(
         }
 
         return ok
-    }
+    }*/
 
     override fun containsSameValueAs(other: Gene): Boolean {
 
@@ -129,7 +129,7 @@ class ObjectWithAttributesGene(
         }
 
         return super.containsSameValueAs(other)
-    }*/
+    }
 
     private fun printAttribute(
         previousGenes: List<Gene>,
