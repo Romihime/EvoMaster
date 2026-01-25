@@ -61,7 +61,7 @@ class ObjectWithAttributesGene(
         )
     }
 
-    override fun unsafeCopyValueFrom(other: Gene): Boolean {
+   /* override fun unsafeCopyValueFrom(other: Gene): Boolean {
 
         if (other !is ObjectGene) {
             return false
@@ -129,7 +129,7 @@ class ObjectWithAttributesGene(
         }
 
         return super.containsSameValueAs(other)
-    }
+    }*/
 
     private fun printAttribute(
         previousGenes: List<Gene>,
