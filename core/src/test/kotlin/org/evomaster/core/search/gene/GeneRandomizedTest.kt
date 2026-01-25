@@ -48,12 +48,13 @@ class GeneRandomizedTest : AbstractGeneTest(){
             }
         }
 
-        verifyCopyValueFrom(mutable, rand)
+        verifyCopyValueFrom(mutable, rand,seed)
     }
 
     private fun verifyCopyValueFrom(
         mutable: List<Gene>,
-        rand: Randomness
+        rand: Randomness,
+        seed: Long
     ) {
         val printable = mutable.filter { it.isGloballyValid() && it.isPrintable() }
 
@@ -74,7 +75,20 @@ class GeneRandomizedTest : AbstractGeneTest(){
                 //assertTrue(x.containsSameValueAs(y))
             } else {
                 //they must be different. the same genotype must not lead to different phenotypes
-                assertFalse(x.containsSameValueAs(y))
+                try {
+                    assertFalse(x.containsSameValueAs(y))
+                } catch (e: AssertionError) {
+                    println("🔥 FAILURE in verifyCopyValueFrom")
+                    println("Seed = $seed")
+                    println("Gene = ${root.javaClass.name}")
+                    if (root is ObjectWithAttributesGene) {
+                        println("Attributes = ${root.attributeNames}")
+                        println("Fields = ${root.fixedFields.map { it.name }}")
+                    }
+                    println("sx = $sx")
+                    println("sy = $sy")
+                    throw e
+                }
 
                 //with same type and constraints, even "unsafe" should always work
                 val wasCopied = x.unsafeCopyValueFrom(y)
