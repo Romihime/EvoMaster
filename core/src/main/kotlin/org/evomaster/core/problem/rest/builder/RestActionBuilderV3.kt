@@ -968,7 +968,7 @@ object RestActionBuilderV3 {
                         refType = referenceClassDef,
                         isFixed = true,
                         template = null,
-                        additionalFields = mutableListOf(),
+                        additionalFields = null,
                         attributeNames = attributeNames
                     )
                 }else{
@@ -1143,7 +1143,7 @@ object RestActionBuilderV3 {
                 refType = if (schema is ObjectSchema) referenceTypeName ?: schema.title else null,
                 isFixed = true,
                 template = null,
-                additionalFields = mutableListOf(),
+                additionalFields = null,
                 attributeNames = attributeNames.toSet()
             )
         }

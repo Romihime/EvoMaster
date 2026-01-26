@@ -202,10 +202,10 @@ open class BBXMLApplication {
                 p.age >= 0
 
     private fun isValid(p: Project): Boolean =
-        p.code.isNotBlank() && p.members.isNotEmpty()
+        p.code.isNotBlank()
 
     private fun isValid(pl: ProjectList): Boolean =
-        pl.projects.isNotEmpty()
+        true
 }
 
 /* ===================== MODELS (JAXB) ===================== */
@@ -229,7 +229,7 @@ open class Employee(
 open class Company(
     var name: String = "",
     @field:XmlElement(name = "Person", namespace = "")
-    var employees: List<Person> = emptyList()
+    var employees: MutableList<Person> = mutableListOf()
 )
 
 enum class Role { ADMIN, USER, GUEST }
@@ -241,7 +241,7 @@ open class Department(
     @field:XmlElement(name = "Employee", namespace = "")
     var employees: List<Employee> = emptyList(),
     @field:XmlElement(name = "Department", namespace = "")
-    var subDepartments: List<Department> = emptyList()
+    var subDepartments: MutableList<Department> = mutableListOf()
 )
 
 @XmlRootElement(name = "organization")
@@ -249,11 +249,11 @@ open class Department(
 open class Organization(
     var name: String = "",
     @field:XmlElement(name = "Person", namespace = "")
-    var people: List<Person> = emptyList(),
+    var people: MutableList<Person> = mutableListOf(),
     @field:XmlElement(name = "Employee", namespace = "")
-    var employees: List<Employee> = emptyList(),
+    var employees: MutableList<Employee> = mutableListOf(),
     @field:XmlElement(name = "Company", namespace = "")
-    var companies: List<Company> = emptyList()
+    var companies: MutableList<Company> = mutableListOf()
 )
 
 @XmlRootElement(name = "personWithAttr")
@@ -262,10 +262,7 @@ open class PersonWithAttr(
     @XmlAttribute(name = "id")
     var id: String = "",
     var name: String = "",
-    var age: Int = 0,
-    // makes ObjectGene NOT fixed
-    @field:XmlElement(name = "extras")
-    var extras: XmlExtras? = null
+    var age: Int = 0
 )
 
 @XmlRootElement(name = "project")
@@ -274,23 +271,13 @@ open class Project(
     @XmlAttribute(name = "code")
     var code: String = "",
     @field:XmlElement(name = "PersonWithAttr", namespace = "")
-    var members: List<PersonWithAttr> = emptyList(),
-    // makes ObjectGene NOT fixed
-    @field:XmlElement(name = "extras")
-    var extras: XmlExtras? = null
+    var members: MutableList<PersonWithAttr> = mutableListOf()
 )
 
 @XmlRootElement(name = "projectList")
 @XmlAccessorType(XmlAccessType.FIELD)
 open class ProjectList(
     @field:XmlElement(name = "Project", namespace = "")
-    var projects: List<Project> = emptyList(),
-    @field:XmlElement(name = "extras")
-    var extras: XmlExtras? = null
+    var projects: MutableList<Project> = mutableListOf()
 )
 
-@XmlAccessorType(XmlAccessType.FIELD)
-open class XmlExtras(
-    @XmlAnyElement(lax = true)
-    var any: List<Any> = emptyList()
-)

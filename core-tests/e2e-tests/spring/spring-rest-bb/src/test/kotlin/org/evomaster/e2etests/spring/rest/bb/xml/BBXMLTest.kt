@@ -1,15 +1,13 @@
 package org.evomaster.e2etests.spring.rest.bb.xml
 
 import com.foo.rest.examples.bb.xml.BBXMLController
-import org.evomaster.client.java.instrumentation.shared.ClassName
 import org.evomaster.core.EMConfig
 import org.evomaster.core.output.OutputFormat
 import org.evomaster.core.problem.rest.data.HttpVerb
 import org.evomaster.e2etests.spring.rest.bb.SpringTestBase
-import org.junit.Test
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
 
 
 class BBXMLTest : SpringTestBase() {
@@ -23,56 +21,56 @@ class BBXMLTest : SpringTestBase() {
         }
     }
 
-    @Disabled
     @Test
     fun testRunEM() {
+        runTestHandlingFlakyAndCompilation(
+            "BBXmlEM",
+            "org.foo.BBXmlEM",
+            null,  // terminations
+            1000,   // iterations
+            false, // createTests - skip compilation phase
+            { args: MutableList<String> ->
 
-        val className = ClassName("org.foo.XmlEM")
-        val outputFormat = OutputFormat.JAVA_JUNIT_5
+                addBlackBoxOptions(args, OutputFormat.JAVA_JUNIT_5)
+                args.add("--enableBasicAssertions")
+                args.add("true")
 
-        testRunEMGeneric(true, className, outputFormat)
+                val solution = initAndRun(args)
+                assertTrue(solution.individuals.size >= 1)
 
-    }
+                /* ========= basic XML endpoints ========= */
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/receive-string-respond-xml", null)
+                // 400 for receive-string-respond-xml requires blank string - hard to generate
 
-    fun testRunEMGeneric(basicAssertions: Boolean, className: ClassName, outputFormat: OutputFormat? = OutputFormat.JAVA_JUNIT_5) {
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/receive-xml-respond-string", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/receive-xml-respond-string", null)
 
-        val lambda = { args: MutableList<String> ->
-            args.add("--enableBasicAssertions")
-            args.add(basicAssertions.toString())
+                /* ========= nested XML objects ========= */
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/employee", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/employee", null)
 
-            val solution = initAndRun(args)
-            assertTrue(solution.individuals.size >= 1)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/company", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/company", null)
 
-            /* ========= string / person ========= */
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/receive-string-respond-xml", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/receive-string-respond-xml", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/department", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/department", null)
 
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/receive-xml-respond-string", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/receive-xml-respond-string", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/organization", null)
 
-            /* ========= nesting ========= */
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/employee", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/employee", null)
+                /* ========= XML with attributes (main test objective) ========= */
 
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/company", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/company", null)
+                // person-with-attr: simple object with @XmlAttribute
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/person-with-attr", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/person-with-attr", null)
 
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/department", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/department", null)
+                // project: object with @XmlAttribute and list of PersonWithAttr
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/project", null)
+                assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/project", null)
 
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/organization", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/organization", null)
-
-            /* ========= attributes ========= */
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/project", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/project", null)
-
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/projects", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/projects", null)
-
-            /* ========= person with attributes ========= */
-            assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/person-with-attr", null)
-            assertHasAtLeastOne(solution, HttpVerb.POST, 400, "/api/bbxml/person-with-attr", null)
-        }
+                // projects: list of Project objects
+                assertHasAtLeastOne(solution, HttpVerb.POST, 200, "/api/bbxml/projects", null)
+            },
+            3  // timeoutMinutes
+        )
     }
 }
