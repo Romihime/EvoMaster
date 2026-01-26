@@ -80,7 +80,7 @@ object GeneSamplerForTests {
                         genes.add(c as KClass<out Gene>)
                     }
                 }
-        return genes
+        return genes.sortedBy {it.qualifiedName}
     }
 
 
@@ -913,7 +913,6 @@ object GeneSamplerForTests {
             .filter { !it.isAbstract }
             .filter { it.java != CycleObjectGene::class.java && it.java != LimitObjectGene::class.java }
             .filter { it.java != SqlMultidimensionalArrayGene::class.java }
-        // ObjectWithAttributesGene CAN be nested (valid XML structure)
 
         // Use samplePrintableTemplate to ensure fields are printable
         // This is consistent with how sampleArrayGene works
