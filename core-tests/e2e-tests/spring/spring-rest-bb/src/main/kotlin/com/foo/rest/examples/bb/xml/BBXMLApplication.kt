@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+import org.springframework.http.MediaType
 import javax.xml.bind.annotation.*
 
 @SpringBootApplication(exclude = [SecurityAutoConfiguration::class])
@@ -43,7 +44,8 @@ open class BBXMLApplication {
     )
     fun xmlToString(@RequestBody person: Person): ResponseEntity<String> {
         if (!isValid(person))
-            return ResponseEntity.status(400).build()
+            return ResponseEntity
+                .status(400).contentType(MediaType.TEXT_PLAIN).body("")
 
         return ResponseEntity.status(200).body("not ok")
     }
@@ -56,7 +58,9 @@ open class BBXMLApplication {
     )
     fun employee(@RequestBody employee: Employee): ResponseEntity<String> {
         if (!isValid(employee))
-            return ResponseEntity.status(400).build()
+            return ResponseEntity.status(400)
+                .contentType(MediaType.TEXT_PLAIN)
+                .body("invalid input")
 
         return ResponseEntity.status(200)
             .body(
@@ -75,7 +79,7 @@ open class BBXMLApplication {
     )
     fun company(@RequestBody company: Company): ResponseEntity<String> {
         if (!isValid(company))
-            return ResponseEntity.status(400).build()
+            return ResponseEntity.status(400).body("")
 
         return ResponseEntity.status(200)
             .body(if (company.employees.isEmpty()) "small company" else "big company")
@@ -89,7 +93,9 @@ open class BBXMLApplication {
     )
     fun department(@RequestBody department: Department): ResponseEntity<String> {
         if (!isValid(department))
-            return ResponseEntity.status(400).build()
+            return ResponseEntity.status(400)
+                .contentType(MediaType.TEXT_PLAIN)
+                .body("invalid input")
 
         return ResponseEntity.status(200)
             .body("department with ${department.employees.size + 1} employees")
@@ -103,7 +109,9 @@ open class BBXMLApplication {
     )
     fun organization(@RequestBody organization: Organization): ResponseEntity<String> {
         if (!isValid(organization))
-            return ResponseEntity.status(400).build()
+            return ResponseEntity.status(400)
+                .contentType(MediaType.TEXT_PLAIN)
+                .body("invalid input")
 
         return ResponseEntity.status(200)
             .body("organization with ${organization.people.size} people")
@@ -117,7 +125,7 @@ open class BBXMLApplication {
     )
     fun project(@RequestBody project: Project): ResponseEntity<String> {
         if (!isValid(project))
-            return ResponseEntity.status(400).build()
+            return ResponseEntity.status(400).body("")
 
         var adults = 0
         for (m in project.members) {
@@ -141,7 +149,7 @@ open class BBXMLApplication {
     )
     fun postProjects(@RequestBody list: ProjectList): ResponseEntity<String> {
         if (!isValid(list))
-            return ResponseEntity.status(400).build()
+            return ResponseEntity.status(400).body("")
 
         var members = 0
         var hasCode = false
@@ -173,7 +181,7 @@ open class BBXMLApplication {
     fun personWithAttr(@RequestBody person: PersonWithAttr): ResponseEntity<String> {
 
         if (!isValid(person))
-            return ResponseEntity.status(400).build()
+            return ResponseEntity.status(400).body("invalid person")
 
         return ResponseEntity.status(200)
             .body("person ${person.id} is valid")
