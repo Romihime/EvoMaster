@@ -929,10 +929,13 @@ object RestActionBuilderV3 {
                         schema.items
                     }
 
-                    val template = getGene(name + "_item", arrayType, schemaHolder,currentSchema, history, referenceClassDef = null, options = options, messages = messages)//Could still have an empty []
-//                    if (template is CycleObjectGene) {
-//                        return CycleObjectGene("<array> ${template.name}")
-//                    }
+                    // Use the XML name from schema.xml.name (the name of the array element in XML)
+                    // if available, otherwise fallback to name + "_item"
+                    val itemName = schema.xml?.name ?: (name + "_item")
+                    val template = getGene(itemName, arrayType, schemaHolder,currentSchema, history, referenceClassDef = null, options = options, messages = messages)//Could still have an empty []
+                    //if (template is CycleObjectGene) {
+                    //return CycleObjectGene("<array> ${template.name}")
+                    //}
                     return createNonObjectGeneWithSchemaConstraints(schema, name, ArrayGene::class.java, options, template, isInPath, examples, messages = messages)//ArrayGene(name, template)
                 } else {
                     LoggingUtil.uniqueWarn(log, "Invalid 'array' definition for '$name'")
