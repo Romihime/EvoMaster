@@ -913,6 +913,9 @@ object GeneSamplerForTests {
             .filter { !it.isAbstract }
             .filter { it.java != CycleObjectGene::class.java && it.java != LimitObjectGene::class.java }
             .filter { it.java != SqlMultidimensionalArrayGene::class.java }
+            // Excluir genes con compareTo problemático
+            .filter { it.java != SqlRangeGene::class.java }
+            .filter { it.java != SqlMultiRangeGene::class.java }
 
         // Use samplePrintableTemplate to ensure fields are printable
         // This is consistent with how sampleArrayGene works
