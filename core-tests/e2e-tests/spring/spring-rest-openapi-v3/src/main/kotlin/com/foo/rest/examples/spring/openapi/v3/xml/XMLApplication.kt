@@ -11,6 +11,7 @@ import javax.xml.bind.annotation.XmlAccessorType
 import javax.xml.bind.annotation.XmlAnyElement
 import javax.xml.bind.annotation.XmlAttribute
 import javax.xml.bind.annotation.XmlElement
+import javax.xml.bind.annotation.XmlElementWrapper
 import javax.xml.bind.annotation.XmlRootElement
 
 
@@ -36,7 +37,7 @@ open class XMLApplication {
     )
     fun stringToXml(@RequestBody body: String): ResponseEntity<Person> {
 
-        if (body.isBlank() || body.length > 20)
+        if (body.isBlank() || body.any {it.isDigit()})
             return ResponseEntity.status(400).build()
 
         return ResponseEntity.status(200)
@@ -228,7 +229,7 @@ open class XMLApplication {
     private fun isValid(pl: ProjectList): Boolean =
         pl.projects.isNotEmpty() &&
                 pl.projects.size <= 5 &&
-                pl.projects.any { it.code.startsWith("A") }
+                pl.projects.any { it.code.isNotBlank() }
 }
 
 /* ===================== MODELS (JAXB) ===================== */
@@ -252,7 +253,7 @@ open class Employee(
 open class Company(
     var name: String = "",
     @field:XmlElement(name = "Person", namespace = "")
-    var employees: List<Person> = emptyList()
+    var employees: MutableList<Person> = mutableListOf()
 )
 
 enum class Role { ADMIN, USER, GUEST }
@@ -262,9 +263,9 @@ enum class Role { ADMIN, USER, GUEST }
 open class Department(
     var name: String = "",
     @field:XmlElement(name = "Employee", namespace = "")
-    var employees: List<Employee> = emptyList(),
+    var employees: MutableList<Employee> = mutableListOf(),
     @field:XmlElement(name = "Department", namespace = "")
-    var subDepartments: List<Department> = emptyList()
+    var subDepartments: MutableList<Department> = mutableListOf()
 )
 
 @XmlRootElement(name = "organization")
@@ -272,14 +273,14 @@ open class Department(
 open class Organization(
     var name: String = "",
     @field:XmlElement(name = "Person", namespace = "")
-    var people: List<Person> = emptyList(),
+    var people: MutableList<Person> = mutableListOf(),
     @field:XmlElement(name = "Employee", namespace = "")
-    var employees: List<Employee> = emptyList(),
+    var employees: MutableList<Employee> = mutableListOf(),
     @field:XmlElement(name = "Company", namespace = "")
-    var companies: List<Company> = emptyList()
+    var companies: MutableList<Company> = mutableListOf()
 )
 
-@XmlRootElement(name = "personWithAttr")
+@XmlRootElement(name = "PersonWithAttr")
 @XmlAccessorType(XmlAccessType.FIELD)
 open class PersonWithAttr(
     @XmlAttribute(name = "id")
@@ -288,18 +289,20 @@ open class PersonWithAttr(
     var age: Int = 0
 )
 
-@XmlRootElement(name = "project")
+@XmlRootElement(name = "Project")
 @XmlAccessorType(XmlAccessType.FIELD)
 open class Project(
     @XmlAttribute(name = "code")
     var code: String = "",
+    @field:XmlElementWrapper(name = "members")
     @field:XmlElement(name = "PersonWithAttr", namespace = "")
-    var members: List<PersonWithAttr> = emptyList()
+    var members: MutableList<PersonWithAttr> = mutableListOf()
 )
 
 @XmlRootElement(name = "projectList")
 @XmlAccessorType(XmlAccessType.FIELD)
 open class ProjectList(
+    @field:XmlElementWrapper(name = "projects")
     @field:XmlElement(name = "Project", namespace = "")
-    var projects: List<Project> = emptyList()
+    var projects: MutableList<Project> = mutableListOf()
 )
