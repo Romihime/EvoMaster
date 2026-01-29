@@ -222,10 +222,8 @@ open class XMLApplication {
                 p.age in 0..150
 
     private fun isValid(p: Project): Boolean =
-        p.code.isNotBlank() &&
-                p.code.length == 3 &&
-                p.members.isNotEmpty() &&
-                p.members.size <= 10
+                p.code.length >= 3 &&
+                p.members.size >= 0
 
     private fun isValid(pl: ProjectList): Boolean =
         pl.projects.isNotEmpty() &&
@@ -234,13 +232,6 @@ open class XMLApplication {
 }
 
 /* ===================== MODELS (JAXB) ===================== */
-
-
-@XmlAccessorType(XmlAccessType.FIELD)
-open class XmlExtension(
-    @XmlAnyElement(lax = true)
-    var any: List<Any> = emptyList()
-)
 
 @XmlRootElement(name = "person")
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -294,10 +285,7 @@ open class PersonWithAttr(
     @XmlAttribute(name = "id")
     var id: String = "",
     var name: String = "",
-    var age: Int = 0,
-    // makes ObjectGene NOT fixed
-    @XmlAnyElement(lax = true)
-    var any: List<Any> = emptyList()
+    var age: Int = 0
 )
 
 @XmlRootElement(name = "project")
@@ -306,18 +294,12 @@ open class Project(
     @XmlAttribute(name = "code")
     var code: String = "",
     @field:XmlElement(name = "PersonWithAttr", namespace = "")
-    var members: List<PersonWithAttr> = emptyList(),
-    // makes ObjectGene NOT fixed
-    @XmlAnyElement(lax = true)
-    var any: List<Any> = emptyList()
+    var members: List<PersonWithAttr> = emptyList()
 )
 
 @XmlRootElement(name = "projectList")
 @XmlAccessorType(XmlAccessType.FIELD)
 open class ProjectList(
     @field:XmlElement(name = "Project", namespace = "")
-    var projects: List<Project> = emptyList(),
-    // makes ObjectGene NOT fixed
-    @XmlAnyElement(lax = true)
-    var any: List<Any> = emptyList()
+    var projects: List<Project> = emptyList()
 )
