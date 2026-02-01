@@ -1802,7 +1802,9 @@ object RestActionBuilderV3 {
         }
 
         if (isRoot && refCache.containsKey(reference)) {
-            return refCache[reference]!!.copy()
+            val copy = refCache[reference]!!.copy()
+            copy.name = name
+            return copy
         }
 
         /*
