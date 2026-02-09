@@ -50,7 +50,9 @@ import org.evomaster.core.search.gene.placeholder.LimitObjectGene
 import org.evomaster.core.search.gene.regex.RegexGene
 import org.evomaster.core.search.gene.string.Base64StringGene
 import org.evomaster.core.search.gene.string.StringGene
+import org.evomaster.core.search.gene.jsonPatch.JsonPatchGene
 import org.evomaster.core.search.gene.utils.GeneUtils
+import org.evomaster.core.search.service.Randomness
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.net.URI
@@ -729,6 +731,38 @@ object RestActionBuilderV3 {
             return
         }
 
+        // Check if this is a JSON PATCH request (RFC 6902)
+        if (bodies.keys.any { it.equals("application/json-patch+json", ignoreCase = true) }) {
+            try {
+                // Try to find the resource schema from a GET operation on the same endpoint
+                val resourceGene = findResourceSchemaFromGetEndpoint(
+                    operation,
+                    restPath,
+                    schemaHolder,
+                    currentSchema,
+                    options,
+                    messages
+                )
+
+                // Create JsonPatchGene with the resource schema (or null if not found)
+                val gene = JsonPatchGene("jsonPatchBody", resourceGene)
+                gene.randomize(Randomness(), true)
+
+                // Create content type gene for JSON PATCH
+                val contentTypeGene = EnumGene<String>("contentType", listOf("application/json-patch+json"))
+                val bodyParam = BodyParam(gene, contentTypeGene)
+                    .apply { this.description = description ?: "JSON Patch body (RFC 6902)" }
+
+                params.add(bodyParam)
+                messages.add("✓ Added JsonPatchGene for $verb:$restPath")
+                return
+            } catch (e: Exception) {
+                messages.add("⚠ Failed to handle JsonPatch for $verb:$restPath: ${e.message}")
+                e.printStackTrace()
+                // Continue with normal body handling as fallback
+            }
+        }
+
 
         /*
             FIXME as of V3, different types might have different body definitions.
@@ -760,6 +794,83 @@ object RestActionBuilderV3 {
         }
 
         params.add(bodyParam)
+    }
+
+    /**
+     * Try to find the resource schema by looking for a GET operation on the same endpoint.
+     * This is useful for JSON PATCH operations where we need to know the structure of the
+     * resource being patched.
+     *
+     * @return A Gene representing the resource schema, or null if not found
+     */
+    private fun findResourceSchemaFromGetEndpoint(
+        operation: Operation,
+        restPath: RestPath,
+        schemaHolder: RestSchema,
+        currentSchema: SchemaOpenAPI,
+        options: Options,
+        messages: MutableList<String>
+    ): Gene? {
+        try {
+            // Get the path string from RestPath
+            val pathString = restPath.toString()
+
+            // Find the PathItem for this endpoint in the OpenAPI spec
+            val openAPI = currentSchema.schemaParsed
+            val pathItem = openAPI.paths?.get(pathString)
+            if (pathItem == null) {
+                messages.add("⚠ Could not find path item for $pathString to extract resource schema")
+                return null
+            }
+
+            // Look for GET operation
+            val getOperation = pathItem.get
+            if (getOperation == null) {
+                messages.add("⚠ No GET operation found on $pathString to extract resource schema")
+                return null
+            }
+
+            // Extract schema from 200 response
+            val responses = getOperation.responses
+            val successResponse = responses?.get("200") ?: responses?.get("default")
+            if (successResponse == null) {
+                messages.add("⚠ No success response found for GET on $pathString")
+                return null
+            }
+
+            // Get JSON content from response
+            val content = successResponse.content
+            val jsonMediaType = content?.get("application/json") ?: content?.get("*/*")
+            if (jsonMediaType == null) {
+                messages.add("⚠ No JSON content found in GET response for $pathString")
+                return null
+            }
+
+            val schema = jsonMediaType.schema
+            if (schema == null) {
+                messages.add("⚠ No schema found in GET response for $pathString")
+                return null
+            }
+
+            // Convert schema to Gene
+            val resourceGene = getGene(
+                "resource",
+                schema,
+                schemaHolder,
+                currentSchema,
+                referenceClassDef = null,
+                options = options,
+                messages = messages,
+                examples = listOf()
+            )
+
+            messages.add("✓ Found resource schema from GET operation for $pathString")
+            return resourceGene
+
+        } catch (e: Exception) {
+            messages.add("⚠ Error extracting resource schema for $restPath: ${e.message}")
+            return null
+        }
     }
 
     private fun possiblyOptional(gene: Gene, required: Boolean?): Gene {

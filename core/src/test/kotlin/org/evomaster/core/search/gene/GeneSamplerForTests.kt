@@ -5,6 +5,9 @@ import org.evomaster.core.parser.RegexType
 import org.evomaster.core.search.gene.collection.*
 import org.evomaster.core.search.gene.datetime.*
 import org.evomaster.core.search.gene.interfaces.ComparableGene
+import org.evomaster.core.search.gene.jsonPatch.JsonPatchGene
+import org.evomaster.core.search.gene.jsonPatch.JsonPatchOperationGene
+import org.evomaster.core.search.gene.jsonPatch.JsonPointerGene
 import org.evomaster.core.search.gene.mongo.ObjectIdGene
 import org.evomaster.core.search.gene.regex.*
 import org.evomaster.core.search.gene.sql.*
@@ -136,6 +139,10 @@ object GeneSamplerForTests {
             RegexGene::class -> sampleRegexGene(rand) as T
             ObjectWithAttributesGene::class -> sampleObjectGeneWithAttributes(rand) as T
 
+            // JSON Patch genes
+            JsonPointerGene::class -> sampleJsonPointerGene(rand) as T
+            JsonPatchOperationGene::class -> sampleJsonPatchOperationGene(rand) as T
+            JsonPatchGene::class -> sampleJsonPatchGene(rand) as T
             //SQL genes
             SqlJSONPathGene::class -> sampleSqlJSONPathGene(rand) as T
             SqlTextSearchVectorGene::class -> sampleSqlTextSearchVectorGene(rand) as T
@@ -957,5 +964,30 @@ object GeneSamplerForTests {
             additionalFields = null,
             attributeNames = attributeNames
         )
+    }
+
+    fun sampleJsonPointerGene(rand: Randomness): JsonPointerGene {
+        val segments = mutableListOf(
+            StringGene("seg0", "example"),
+            StringGene("seg1", "path")
+        )
+        return JsonPointerGene("samplePointer", segments, null)
+    }
+
+    fun sampleJsonPatchOperationGene(rand: Randomness): JsonPatchOperationGene {
+        val opGene = EnumGene("op", listOf("add", "remove", "replace", "move", "copy", "test"))
+        opGene.randomize(rand, false)
+
+        val pathGene = sampleJsonPointerGene(rand)
+        val fromGene = OptionalGene("from", sampleJsonPointerGene(rand), isActive = false)
+        val valueGene = OptionalGene("value", StringGene("value", "defaultValue"), isActive = true)
+
+        return JsonPatchOperationGene("sampleOp", opGene, pathGene, fromGene, valueGene)
+    }
+
+    fun sampleJsonPatchGene(rand: Randomness): JsonPatchGene {
+        val gene = JsonPatchGene("samplePatch", null)
+        gene.randomize(rand, false)
+        return gene
     }
 }
