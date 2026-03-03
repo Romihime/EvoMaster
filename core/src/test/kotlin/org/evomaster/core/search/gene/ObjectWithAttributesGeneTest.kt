@@ -284,29 +284,20 @@ class ObjectWithAttributesGeneTest {
     }
 
     @Test
-    fun testTextAsAttributeLogsWarning() {
-        // When #text is incorrectly specified as an attribute in the schema,
-        // the class logs a warning but continues processing (does not throw an exception)
-        // This tests that the object is created successfully despite the invalid schema
-        val obj = ObjectWithAttributesGene(
-            name = "node",
-            fixedFields = listOf(
-                StringGene("#text", "value")
-            ),
-            isFixed = true,
-            attributeNames = setOf("#text")
-        )
-
-        // Object should be created successfully - no exception thrown
-        Assertions.assertNotNull(obj)
-
-        // The XML output will treat #text as an attribute (even though it's invalid schema)
-        val actual = obj.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
-        val expected = "<node #text=\"value\"></node>"
-
-        Assertions.assertEquals(expected, actual)
+    fun testTextAsAttributeThrowsException() {
+        // "#text" is reserved for element content and cannot be used as an attribute name.
+        // Passing it in attributeNames must fail fast with an IllegalArgumentException.
+        Assertions.assertThrows(IllegalArgumentException::class.java) {
+            ObjectWithAttributesGene(
+                name = "node",
+                fixedFields = listOf(
+                    StringGene("#text", "value")
+                ),
+                isFixed = true,
+                attributeNames = setOf("#text")
+            )
+        }
     }
-
 
     @Test
     fun testArrayGeneWithAttributesInsideObjectGene() {
@@ -372,5 +363,121 @@ class ObjectWithAttributesGeneTest {
                     "</members>" +
             "</project>"
         Assertions.assertEquals(expected, actual)
+    }
+
+    @Test
+    fun testUnknownAttributeNameThrowsException() {
+        // "ghost" is listed in attributeNames but has no corresponding gene in fixedFields.
+        // This is an invalid configuration and must fail fast with an IllegalArgumentException.
+        assertThrows<IllegalArgumentException> {
+            ObjectWithAttributesGene(
+                name = "node",
+                fixedFields = listOf(
+                    StringGene("id", "42"),
+                    StringGene("label", "hello")
+                ),
+                isFixed = true,
+                attributeNames = setOf("id", "ghost")  // "ghost" does not exist in fixedFields
+            )
+        }
+    }
+
+    @Test
+    fun testMultipleUnknownAttributeNamesThrowException() {
+        // All names in attributeNames must correspond to a field in fixedFields;
+        // providing several unknown names must also throw.
+        assertThrows<IllegalArgumentException> {
+            ObjectWithAttributesGene(
+                name = "node",
+                fixedFields = listOf(StringGene("id", "42")),
+                isFixed = true,
+                attributeNames = setOf("missing1", "missing2")
+            )
+        }
+    }
+
+    // --- containsSameValueAs tests ---
+
+    @Test
+    fun testContainsSameValueAs_sameContentDifferentSetInstances() {
+        // Two independently constructed sets with the same elements must be considered equal.
+        // This verifies that != uses Set.equals() (content), not reference identity (!==).
+        val a = ObjectWithAttributesGene(
+            name = "node",
+            fixedFields = listOf(StringGene("id", "1"), StringGene("name", "Alice")),
+            isFixed = true,
+            attributeNames = setOf("id", "name")
+        )
+        val b = ObjectWithAttributesGene(
+            name = "node",
+            fixedFields = listOf(StringGene("id", "1"), StringGene("name", "Alice")),
+            isFixed = true,
+            attributeNames = setOf("id", "name")  // independent set instance, same content
+        )
+        assertTrue(a.containsSameValueAs(b))
+    }
+
+    @Test
+    fun testContainsSameValueAs_setOrderDoesNotMatter() {
+        // Sets are unordered: {"id","name"} and {"name","id"} must be treated as equal.
+        val a = ObjectWithAttributesGene(
+            name = "node",
+            fixedFields = listOf(StringGene("id", "1"), StringGene("name", "Alice")),
+            isFixed = true,
+            attributeNames = setOf("id", "name")
+        )
+        val b = ObjectWithAttributesGene(
+            name = "node",
+            fixedFields = listOf(StringGene("id", "1"), StringGene("name", "Alice")),
+            isFixed = true,
+            attributeNames = setOf("name", "id")  // reversed insertion order
+        )
+        assertTrue(a.containsSameValueAs(b))
+    }
+
+    @Test
+    fun testContainsSameValueAs_differentAttributeNames() {
+        // Different attributeNames sets must cause containsSameValueAs to return false.
+        val a = ObjectWithAttributesGene(
+            name = "node",
+            fixedFields = listOf(StringGene("id", "1"), StringGene("name", "Alice")),
+            isFixed = true,
+            attributeNames = setOf("id")
+        )
+        val b = ObjectWithAttributesGene(
+            name = "node",
+            fixedFields = listOf(StringGene("id", "1"), StringGene("name", "Alice")),
+            isFixed = true,
+            attributeNames = setOf("name")
+        )
+        assertFalse(a.containsSameValueAs(b))
+    }
+
+    @Test
+    fun testContainsSameValueAs_withAttributesVsPlainObjectGene() {
+        // An ObjectWithAttributesGene that has non-empty attributeNames cannot have the same
+        // value as a plain ObjectGene, because the XML representations differ.
+        val withAttrs = ObjectWithAttributesGene(
+            name = "node",
+            fixedFields = listOf(StringGene("id", "1"), StringGene("name", "Alice")),
+            isFixed = true,
+            attributeNames = setOf("id")
+        )
+        val plain = ObjectGene("node", listOf(StringGene("id", "1"), StringGene("name", "Alice")))
+        assertFalse(withAttrs.containsSameValueAs(plain))
+    }
+
+    @Test
+    fun testContainsSameValueAs_emptyAttributesVsPlainObjectGene() {
+        // When attributeNames is empty, ObjectWithAttributesGene produces the same XML as a 
+        // plain ObjectGene, so containsSameValueAs should delegate to the parent and return true.
+        val withNoAttrs = ObjectWithAttributesGene(
+            name = "node",
+            fixedFields = listOf(StringGene("id", "1"), StringGene("name", "Alice")),
+            isFixed = true,
+            attributeNames = emptySet()
+        )
+        val plain = ObjectGene("node", listOf(StringGene("id", "1"), StringGene("name", "Alice")))
+        assertTrue(withNoAttrs.containsSameValueAs(plain))
     }
 }
