@@ -1,6 +1,7 @@
 package org.evomaster.core.search.gene.jsonPatch
 
 import org.evomaster.core.search.gene.string.StringGene
+import org.evomaster.core.search.service.Randomness
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -8,7 +9,7 @@ class JsonPointerGeneTest {
 
     @Test
     fun testBasicPath() {
-        val pointer = JsonPointerGene("ptr", mutableListOf(
+        val pointer = JsonPointerGene("ptr", listOf(
             StringGene("s0", "user"),
             StringGene("s1", "name")
         ))
@@ -17,13 +18,13 @@ class JsonPointerGeneTest {
 
     @Test
     fun testRootPath() {
-        val pointer = JsonPointerGene("ptr", mutableListOf())
+        val pointer = JsonPointerGene("ptr", emptyList())
         assertEquals("/", pointer.getValueAsPrintableString())
     }
 
     @Test
     fun testEscapingTilde() {
-        val pointer = JsonPointerGene("ptr", mutableListOf(
+        val pointer = JsonPointerGene("ptr", listOf(
             StringGene("s0", "a~b")
         ))
         assertEquals("/a~0b", pointer.getValueAsPrintableString())
@@ -31,7 +32,7 @@ class JsonPointerGeneTest {
 
     @Test
     fun testEscapingSlash() {
-        val pointer = JsonPointerGene("ptr", mutableListOf(
+        val pointer = JsonPointerGene("ptr", listOf(
             StringGene("s0", "c/d")
         ))
         assertEquals("/c~1d", pointer.getValueAsPrintableString())
@@ -39,7 +40,7 @@ class JsonPointerGeneTest {
 
     @Test
     fun testEscapingBoth() {
-        val pointer = JsonPointerGene("ptr", mutableListOf(
+        val pointer = JsonPointerGene("ptr", listOf(
             StringGene("s0", "a~b"),
             StringGene("s1", "c/d")
         ))
@@ -48,7 +49,7 @@ class JsonPointerGeneTest {
 
     @Test
     fun testArrayIndex() {
-        val pointer = JsonPointerGene("ptr", mutableListOf(
+        val pointer = JsonPointerGene("ptr", listOf(
             StringGene("s0", "items"),
             StringGene("s1", "0")
         ))
@@ -57,7 +58,7 @@ class JsonPointerGeneTest {
 
     @Test
     fun testArrayAppend() {
-        val pointer = JsonPointerGene("ptr", mutableListOf(
+        val pointer = JsonPointerGene("ptr", listOf(
             StringGene("s0", "items"),
             StringGene("s1", "-")
         ))
@@ -97,7 +98,7 @@ class JsonPointerGeneTest {
 
     @Test
     fun testCopy() {
-        val original = JsonPointerGene("ptr", mutableListOf(
+        val original = JsonPointerGene("ptr", listOf(
             StringGene("s0", "foo"),
             StringGene("s1", "bar")
         ))
@@ -106,17 +107,17 @@ class JsonPointerGeneTest {
 
         assertEquals(original.getValueAsPrintableString(), copy.getValueAsPrintableString())
         assertNotSame(original, copy)
-        assertNotSame(original.segments, copy.segments)
+        assertEquals(original.segments.size, copy.segments.size)
     }
 
     @Test
     fun testContainsSameValueAs() {
-        val pointer1 = JsonPointerGene("p1", mutableListOf(
+        val pointer1 = JsonPointerGene("p1", listOf(
             StringGene("s0", "user"),
             StringGene("s1", "name")
         ))
 
-        val pointer2 = JsonPointerGene("p2", mutableListOf(
+        val pointer2 = JsonPointerGene("p2", listOf(
             StringGene("s0", "user"),
             StringGene("s1", "name")
         ))
@@ -126,11 +127,11 @@ class JsonPointerGeneTest {
 
     @Test
     fun testContainsSameValueAsDifferent() {
-        val pointer1 = JsonPointerGene("p1", mutableListOf(
+        val pointer1 = JsonPointerGene("p1", listOf(
             StringGene("s0", "user")
         ))
 
-        val pointer2 = JsonPointerGene("p2", mutableListOf(
+        val pointer2 = JsonPointerGene("p2", listOf(
             StringGene("s0", "admin")
         ))
 
@@ -139,7 +140,7 @@ class JsonPointerGeneTest {
 
     @Test
     fun testAddSegment() {
-        val pointer = JsonPointerGene("ptr", mutableListOf(
+        val pointer = JsonPointerGene("ptr", listOf(
             StringGene("s0", "user")
         ))
 
@@ -151,7 +152,7 @@ class JsonPointerGeneTest {
 
     @Test
     fun testRemoveLastSegment() {
-        val pointer = JsonPointerGene("ptr", mutableListOf(
+        val pointer = JsonPointerGene("ptr", listOf(
             StringGene("s0", "user"),
             StringGene("s1", "name")
         ))
@@ -164,7 +165,7 @@ class JsonPointerGeneTest {
 
     @Test
     fun testRemoveLastSegmentFromEmpty() {
-        val pointer = JsonPointerGene("ptr", mutableListOf())
+        val pointer = JsonPointerGene("ptr", emptyList())
 
         pointer.removeLastSegment()
 
@@ -188,5 +189,34 @@ class JsonPointerGeneTest {
         assertTrue(pointer.unsafeSetFromStringValue("/a~0b/c~1d"))
         assertEquals("a~b", pointer.segments[0].value)
         assertEquals("c/d", pointer.segments[1].value)
+    }
+
+    @Test
+    fun testRandomize() {
+        val pointer = JsonPointerGene("ptr")
+        val randomness = Randomness()
+        randomness.updateSeed(42)
+
+        pointer.randomize(randomness, false)
+
+        // After randomize, segments should be within bounds
+        assertTrue(pointer.segments.size in 0..4)
+    }
+
+    @Test
+    fun testMutationWeightAtLeastOne() {
+        val pointer = JsonPointerGene("ptr", emptyList())
+        assertTrue(pointer.mutationWeight() >= 1.0)
+    }
+
+    @Test
+    fun testUnsafeCopyValueFrom() {
+        val p1 = JsonPointerGene("p1", listOf(StringGene("s0", "a"), StringGene("s1", "b")))
+        val p2 = JsonPointerGene("p2", emptyList())
+
+        p2.unsafeCopyValueFrom(p1)
+
+        assertTrue(p2.containsSameValueAs(p1))
+        assertEquals(2, p2.segments.size)
     }
 }

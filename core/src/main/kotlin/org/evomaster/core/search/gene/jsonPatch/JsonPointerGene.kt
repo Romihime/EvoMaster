@@ -5,7 +5,9 @@ import org.evomaster.core.search.gene.Gene
 import org.evomaster.core.search.gene.root.CompositeGene
 import org.evomaster.core.search.gene.string.StringGene
 import org.evomaster.core.search.gene.utils.GeneUtils
+import org.evomaster.core.search.service.AdaptiveParameterControl
 import org.evomaster.core.search.service.Randomness
+import org.evomaster.core.search.service.mutator.MutationWeightControl
 import org.evomaster.core.search.service.mutator.genemutation.AdditionalGeneMutationInfo
 import org.evomaster.core.search.service.mutator.genemutation.SubsetGeneMutationSelectionStrategy
 import org.slf4j.Logger
@@ -26,81 +28,70 @@ import org.slf4j.LoggerFactory
  *   "~" becomes "~0"
  *   "/" becomes "~1"
  *
- * @param segments List of path segments (without leading slashes)
  * @param resourceSchema Optional schema of the target resource for intelligent path generation
  */
 class JsonPointerGene(
     name: String,
-    val segments: MutableList<StringGene> = mutableListOf(),
+    initialSegments: List<StringGene> = emptyList(),
     val resourceSchema: Gene? = null
-) : CompositeGene(name, segments) {
+) : CompositeGene(name, initialSegments.toMutableList()) {
 
     companion object {
         private val log: Logger = LoggerFactory.getLogger(JsonPointerGene::class.java)
 
-        /**
-         * Special segment for array append operation
-         */
         const val ARRAY_APPEND = "-"
 
-        /**
-         * Create a JsonPointerGene from a path string
-         */
+        private const val MAX_SEGMENTS = 4
+
         fun fromPath(name: String, path: String, resourceSchema: Gene? = null): JsonPointerGene {
             if (path.isEmpty() || path == "/") {
-                return JsonPointerGene(name, mutableListOf(), resourceSchema)
+                return JsonPointerGene(name, emptyList(), resourceSchema)
             }
 
-            val segments = path.removePrefix("/")
+            val segs = path.removePrefix("/")
                 .split("/")
                 .mapIndexed { index, seg ->
                     StringGene("seg$index", unescapeSegment(seg))
                 }
-                .toMutableList()
 
-            return JsonPointerGene(name, segments, resourceSchema)
+            return JsonPointerGene(name, segs, resourceSchema)
         }
 
-        /**
-         * Unescape JSON Pointer special characters
-         */
         private fun unescapeSegment(segment: String): String {
             return segment
                 .replace("~1", "/")
                 .replace("~0", "~")
         }
 
-        /**
-         * Escape JSON Pointer special characters
-         */
-        private fun escapeSegment(segment: String): String {
+        fun escapeSegment(segment: String): String {
             return segment
                 .replace("~", "~0")
                 .replace("/", "~1")
         }
     }
 
+    /**
+     * Get all current segments (read-only view)
+     */
+    val segments: List<StringGene>
+        get() = children.filterIsInstance<StringGene>()
+
     override fun copyContent(): Gene {
-        val copiedSegments = segments.map { it.copy() as StringGene }.toMutableList()
+        val copiedSegments = segments.map { it.copy() as StringGene }
         return JsonPointerGene(name, copiedSegments, resourceSchema)
     }
 
     override fun checkForLocallyValidIgnoringChildren(): Boolean {
-        // JSON Pointers are always structurally valid
         return true
     }
 
     override fun randomize(randomness: Randomness, tryToForceNewValue: Boolean) {
-        // Clear existing segments
-        segments.clear()
+        killAllChildren()
 
-        // Generate 0-4 segments randomly
-        val numSegments = randomness.nextInt(0, 4)
-
+        val numSegments = randomness.nextInt(0, MAX_SEGMENTS)
         for (i in 0 until numSegments) {
             val segment = StringGene("seg$i", randomness.nextWordString(1, 10))
-            segment.randomize(randomness, false)
-            segments.add(segment)
+            addChild(segment)
         }
     }
 
@@ -110,27 +101,59 @@ class JsonPointerGene(
         enableAdaptiveGeneMutation: Boolean,
         additionalGeneMutationInfo: AdditionalGeneMutationInfo?
     ): Boolean {
-        // Allow shallow mutations to modify the structure
+        if (segments.isEmpty()) return true
         return randomness.nextBoolean(0.3)
+    }
+
+    override fun shallowMutate(
+        randomness: Randomness,
+        apc: AdaptiveParameterControl,
+        mwc: MutationWeightControl,
+        selectionStrategy: SubsetGeneMutationSelectionStrategy,
+        enableAdaptiveGeneMutation: Boolean,
+        additionalGeneMutationInfo: AdditionalGeneMutationInfo?
+    ): Boolean {
+        if (segments.size < MAX_SEGMENTS && (segments.isEmpty() || randomness.nextBoolean())) {
+            val newSeg = StringGene("seg${segments.size}", randomness.nextWordString(1, 10))
+            addInitializedChild(newSeg, randomness)
+        } else if (segments.isNotEmpty()) {
+            killChildByIndex(randomness.nextInt(segments.size))
+        } else {
+            return false
+        }
+        return true
     }
 
     override fun isMutable(): Boolean {
         return true
     }
 
-    /**
-     * Add a segment to the path
-     */
-    fun addSegment(segment: String) {
-        segments.add(StringGene("seg${segments.size}", segment))
+    override fun mutationWeight(): Double {
+        return 1.0 + segments.sumOf { it.mutationWeight() }
     }
 
     /**
-     * Remove the last segment from the path
+     * Add a child gene, initializing it if this gene is already initialized.
      */
+    private fun addInitializedChild(gene: Gene, randomness: Randomness? = null) {
+        if (this.initialized) {
+            if (randomness != null) {
+                gene.doInitialize(randomness)
+            } else {
+                gene.markAllAsInitialized()
+            }
+        }
+        addChild(gene)
+    }
+
+    fun addSegment(segment: String) {
+        val seg = StringGene("seg${segments.size}", segment)
+        addInitializedChild(seg)
+    }
+
     fun removeLastSegment() {
         if (segments.isNotEmpty()) {
-            segments.removeAt(segments.size - 1)
+            killChildByIndex(segments.size - 1)
         }
     }
 
@@ -173,10 +196,10 @@ class JsonPointerGene(
             return false
         }
 
-        segments.clear()
+        killAllChildren()
         other.segments.forEach { otherSeg ->
             val newSeg = StringGene(otherSeg.name, otherSeg.value)
-            segments.add(newSeg)
+            addInitializedChild(newSeg)
         }
 
         return true
@@ -184,7 +207,7 @@ class JsonPointerGene(
 
     override fun unsafeSetFromStringValue(value: String): Boolean {
         try {
-            segments.clear()
+            killAllChildren()
 
             if (value.isEmpty() || value == "/") {
                 return true
@@ -192,7 +215,7 @@ class JsonPointerGene(
 
             val path = value.removePrefix("/")
             path.split("/").forEachIndexed { index, seg ->
-                segments.add(StringGene("seg$index", unescapeSegment(seg)))
+                addInitializedChild(StringGene("seg$index", unescapeSegment(seg)))
             }
 
             return true

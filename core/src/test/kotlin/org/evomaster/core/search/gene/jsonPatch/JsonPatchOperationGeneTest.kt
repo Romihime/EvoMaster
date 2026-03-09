@@ -9,7 +9,7 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testAddOperation() {
-        val pathGene = JsonPointerGene("path", mutableListOf(StringGene("s0", "a")))
+        val pathGene = JsonPointerGene("path", listOf(StringGene("s0", "a")))
         val valueGene = StringGene("value", "foo")
         val gene = JsonPatchOperationGene.createAdd(pathGene, valueGene)
 
@@ -19,7 +19,7 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testAddOperationWithNumber() {
-        val pathGene = JsonPointerGene("path", mutableListOf(StringGene("s0", "count")))
+        val pathGene = JsonPointerGene("path", listOf(StringGene("s0", "count")))
         val valueGene = IntegerGene("value", 42)
         val gene = JsonPatchOperationGene.createAdd(pathGene, valueGene)
 
@@ -31,7 +31,7 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testRemoveOperation() {
-        val pathGene = JsonPointerGene("path", mutableListOf(StringGene("s0", "c")))
+        val pathGene = JsonPointerGene("path", listOf(StringGene("s0", "c")))
         val gene = JsonPatchOperationGene.createRemove(pathGene)
 
         val json = gene.getValueAsPrintableString()
@@ -40,7 +40,7 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testReplaceOperation() {
-        val pathGene = JsonPointerGene("path", mutableListOf(StringGene("s0", "d")))
+        val pathGene = JsonPointerGene("path", listOf(StringGene("s0", "d")))
         val valueGene = IntegerGene("value", 99)
         val gene = JsonPatchOperationGene.createReplace(pathGene, valueGene)
 
@@ -52,8 +52,8 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testMoveOperation() {
-        val fromGene = JsonPointerGene("from", mutableListOf(StringGene("s0", "source")))
-        val pathGene = JsonPointerGene("path", mutableListOf(StringGene("s0", "target")))
+        val fromGene = JsonPointerGene("from", listOf(StringGene("s0", "source")))
+        val pathGene = JsonPointerGene("path", listOf(StringGene("s0", "target")))
         val gene = JsonPatchOperationGene.createMove(fromGene, pathGene)
 
         val json = gene.getValueAsPrintableString()
@@ -62,8 +62,8 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testCopyOperation() {
-        val fromGene = JsonPointerGene("from", mutableListOf(StringGene("s0", "source")))
-        val pathGene = JsonPointerGene("path", mutableListOf(StringGene("s0", "target")))
+        val fromGene = JsonPointerGene("from", listOf(StringGene("s0", "source")))
+        val pathGene = JsonPointerGene("path", listOf(StringGene("s0", "target")))
         val gene = JsonPatchOperationGene.createCopy(fromGene, pathGene)
 
         val json = gene.getValueAsPrintableString()
@@ -72,7 +72,7 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testTestOperation() {
-        val pathGene = JsonPointerGene("path", mutableListOf(StringGene("s0", "status")))
+        val pathGene = JsonPointerGene("path", listOf(StringGene("s0", "status")))
         val valueGene = StringGene("value", "active")
         val gene = JsonPatchOperationGene.createTest(pathGene, valueGene)
 
@@ -84,7 +84,7 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testNestedPath() {
-        val pathGene = JsonPointerGene("path", mutableListOf(
+        val pathGene = JsonPointerGene("path", listOf(
             StringGene("s0", "user"),
             StringGene("s1", "address"),
             StringGene("s2", "city")
@@ -98,7 +98,7 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testArrayPath() {
-        val pathGene = JsonPointerGene("path", mutableListOf(
+        val pathGene = JsonPointerGene("path", listOf(
             StringGene("s0", "items"),
             StringGene("s1", "0")
         ))
@@ -111,7 +111,7 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testArrayAppendPath() {
-        val pathGene = JsonPointerGene("path", mutableListOf(
+        val pathGene = JsonPointerGene("path", listOf(
             StringGene("s0", "items"),
             StringGene("s1", "-")
         ))
@@ -124,7 +124,7 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testCopy() {
-        val pathGene = JsonPointerGene("path", mutableListOf(StringGene("s0", "foo")))
+        val pathGene = JsonPointerGene("path", listOf(StringGene("s0", "foo")))
         val valueGene = StringGene("value", "bar")
         val original = JsonPatchOperationGene.createAdd(pathGene, valueGene)
 
@@ -136,11 +136,11 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testContainsSameValueAs() {
-        val path1 = JsonPointerGene("p1", mutableListOf(StringGene("s0", "foo")))
+        val path1 = JsonPointerGene("p1", listOf(StringGene("s0", "foo")))
         val value1 = StringGene("v1", "bar")
         val gene1 = JsonPatchOperationGene.createAdd(path1, value1)
 
-        val path2 = JsonPointerGene("p2", mutableListOf(StringGene("s0", "foo")))
+        val path2 = JsonPointerGene("p2", listOf(StringGene("s0", "foo")))
         val value2 = StringGene("v2", "bar")
         val gene2 = JsonPatchOperationGene.createAdd(path2, value2)
 
@@ -149,11 +149,11 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testContainsSameValueAsDifferentOp() {
-        val path1 = JsonPointerGene("p1", mutableListOf(StringGene("s0", "foo")))
+        val path1 = JsonPointerGene("p1", listOf(StringGene("s0", "foo")))
         val value1 = StringGene("v1", "bar")
         val gene1 = JsonPatchOperationGene.createAdd(path1, value1)
 
-        val path2 = JsonPointerGene("p2", mutableListOf(StringGene("s0", "foo")))
+        val path2 = JsonPointerGene("p2", listOf(StringGene("s0", "foo")))
         val gene2 = JsonPatchOperationGene.createRemove(path2)
 
         assertFalse(gene1.containsSameValueAs(gene2))
@@ -161,7 +161,7 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testFieldConsistencyForAdd() {
-        val pathGene = JsonPointerGene("path", mutableListOf(StringGene("s0", "a")))
+        val pathGene = JsonPointerGene("path", listOf(StringGene("s0", "a")))
         val valueGene = StringGene("value", "foo")
         val gene = JsonPatchOperationGene.createAdd(pathGene, valueGene)
 
@@ -171,7 +171,7 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testFieldConsistencyForRemove() {
-        val pathGene = JsonPointerGene("path", mutableListOf(StringGene("s0", "a")))
+        val pathGene = JsonPointerGene("path", listOf(StringGene("s0", "a")))
         val gene = JsonPatchOperationGene.createRemove(pathGene)
 
         assertFalse(gene.valueGene.isActive)
@@ -180,8 +180,8 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testFieldConsistencyForMove() {
-        val fromGene = JsonPointerGene("from", mutableListOf(StringGene("s0", "source")))
-        val pathGene = JsonPointerGene("path", mutableListOf(StringGene("s0", "target")))
+        val fromGene = JsonPointerGene("from", listOf(StringGene("s0", "source")))
+        val pathGene = JsonPointerGene("path", listOf(StringGene("s0", "target")))
         val gene = JsonPatchOperationGene.createMove(fromGene, pathGene)
 
         assertFalse(gene.valueGene.isActive)
@@ -190,7 +190,7 @@ class JsonPatchOperationGeneTest {
 
     @Test
     fun testEscapingInPath() {
-        val pathGene = JsonPointerGene("path", mutableListOf(
+        val pathGene = JsonPointerGene("path", listOf(
             StringGene("s0", "a~b"),
             StringGene("s1", "c/d")
         ))
@@ -199,5 +199,27 @@ class JsonPatchOperationGeneTest {
 
         val json = gene.getValueAsPrintableString()
         assertTrue(json.contains("\"path\":\"/a~0b/c~1d\""))
+    }
+
+    @Test
+    fun testNoDoubleQuotingOnPath() {
+        val pathGene = JsonPointerGene("path", listOf(StringGene("s0", "foo")))
+        val gene = JsonPatchOperationGene.createRemove(pathGene)
+
+        val json = gene.getValueAsPrintableString()
+        // Path should be quoted exactly once: "path":"/foo", not "path":""/foo""
+        assertTrue(json.contains("\"path\":\"/foo\""))
+        assertFalse(json.contains("\"path\":\"\"/foo\"\""))
+    }
+
+    @Test
+    fun testNoDoubleQuotingOnFrom() {
+        val fromGene = JsonPointerGene("from", listOf(StringGene("s0", "src")))
+        val pathGene = JsonPointerGene("path", listOf(StringGene("s0", "dst")))
+        val gene = JsonPatchOperationGene.createMove(fromGene, pathGene)
+
+        val json = gene.getValueAsPrintableString()
+        assertTrue(json.contains("\"from\":\"/src\""))
+        assertFalse(json.contains("\"from\":\"\"/src\"\""))
     }
 }

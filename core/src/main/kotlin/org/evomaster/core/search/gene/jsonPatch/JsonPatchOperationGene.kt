@@ -3,7 +3,7 @@ package org.evomaster.core.search.gene.jsonPatch
 import org.evomaster.core.output.OutputFormat
 import org.evomaster.core.search.gene.Gene
 import org.evomaster.core.search.gene.collection.EnumGene
-import org.evomaster.core.search.gene.root.CompositeGene
+import org.evomaster.core.search.gene.root.CompositeFixedGene
 import org.evomaster.core.search.gene.string.StringGene
 import org.evomaster.core.search.gene.utils.GeneUtils
 import org.evomaster.core.search.gene.wrapper.OptionalGene
@@ -36,9 +36,9 @@ class JsonPatchOperationGene(
     name: String,
     opGene: EnumGene<String>,
     pathGene: JsonPointerGene,
-    fromGene: OptionalGene,  // Contains JsonPointerGene
-    valueGene: OptionalGene  // Can contain any Gene type
-) : CompositeGene(name, mutableListOf(opGene, pathGene, fromGene, valueGene)) {
+    fromGene: OptionalGene,
+    valueGene: OptionalGene
+) : CompositeFixedGene(name, listOf(opGene, pathGene, fromGene, valueGene)) {
 
     val opGene: EnumGene<String>
         get() = children[0] as EnumGene<String>
@@ -58,9 +58,6 @@ class JsonPatchOperationGene(
         // ["add", "copy", "move", "remove", "replace", "test"]
         //   0      1       2       3         4           5
 
-        /**
-         * Factory method to create an "add" operation
-         */
         fun createAdd(pathGene: JsonPointerGene, valueGene: Gene): JsonPatchOperationGene {
             val op = EnumGene("op", VALID_OPS, 0) // "add" is at sorted index 0
             val from = OptionalGene("from", JsonPointerGene("from"), isActive = false)
@@ -69,9 +66,6 @@ class JsonPatchOperationGene(
             return JsonPatchOperationGene("addOp", op, pathGene, from, value)
         }
 
-        /**
-         * Factory method to create a "remove" operation
-         */
         fun createRemove(pathGene: JsonPointerGene): JsonPatchOperationGene {
             val op = EnumGene("op", VALID_OPS, 3) // "remove" is at sorted index 3
             val from = OptionalGene("from", JsonPointerGene("from"), isActive = false)
@@ -80,9 +74,6 @@ class JsonPatchOperationGene(
             return JsonPatchOperationGene("removeOp", op, pathGene, from, value)
         }
 
-        /**
-         * Factory method to create a "replace" operation
-         */
         fun createReplace(pathGene: JsonPointerGene, valueGene: Gene): JsonPatchOperationGene {
             val op = EnumGene("op", VALID_OPS, 4) // "replace" is at sorted index 4
             val from = OptionalGene("from", JsonPointerGene("from"), isActive = false)
@@ -91,9 +82,6 @@ class JsonPatchOperationGene(
             return JsonPatchOperationGene("replaceOp", op, pathGene, from, value)
         }
 
-        /**
-         * Factory method to create a "move" operation
-         */
         fun createMove(fromGene: JsonPointerGene, pathGene: JsonPointerGene): JsonPatchOperationGene {
             val op = EnumGene("op", VALID_OPS, 2) // "move" is at sorted index 2
             val from = OptionalGene("from", fromGene, isActive = true)
@@ -102,9 +90,6 @@ class JsonPatchOperationGene(
             return JsonPatchOperationGene("moveOp", op, pathGene, from, value)
         }
 
-        /**
-         * Factory method to create a "copy" operation
-         */
         fun createCopy(fromGene: JsonPointerGene, pathGene: JsonPointerGene): JsonPatchOperationGene {
             val op = EnumGene("op", VALID_OPS, 1) // "copy" is at sorted index 1
             val from = OptionalGene("from", fromGene, isActive = true)
@@ -113,9 +98,6 @@ class JsonPatchOperationGene(
             return JsonPatchOperationGene("copyOp", op, pathGene, from, value)
         }
 
-        /**
-         * Factory method to create a "test" operation
-         */
         fun createTest(pathGene: JsonPointerGene, valueGene: Gene): JsonPatchOperationGene {
             val op = EnumGene("op", VALID_OPS, 5) // "test" is at sorted index 5
             val from = OptionalGene("from", JsonPointerGene("from"), isActive = false)
@@ -152,14 +134,13 @@ class JsonPatchOperationGene(
     }
 
     override fun copyContent(): Gene {
-        val copy = JsonPatchOperationGene(
+        return JsonPatchOperationGene(
             name,
             opGene.copy() as EnumGene<String>,
             pathGene.copy() as JsonPointerGene,
             fromGene.copy() as OptionalGene,
             valueGene.copy() as OptionalGene
         )
-        return copy
     }
 
     override fun checkForLocallyValidIgnoringChildren(): Boolean {
@@ -167,21 +148,15 @@ class JsonPatchOperationGene(
     }
 
     override fun randomize(randomness: Randomness, tryToForceNewValue: Boolean) {
-        // Randomize operation type
         opGene.randomize(randomness, tryToForceNewValue)
-
-        // Randomize path
         pathGene.randomize(randomness, false)
 
-        // Randomize from if it has a gene inside
         if (fromGene.gene is JsonPointerGene) {
             (fromGene.gene as JsonPointerGene).randomize(randomness, false)
         }
 
-        // Randomize value gene
         valueGene.gene.randomize(randomness, false)
 
-        // Ensure field consistency after randomization
         ensureFieldConsistency()
     }
 
@@ -191,8 +166,9 @@ class JsonPatchOperationGene(
         enableAdaptiveGeneMutation: Boolean,
         additionalGeneMutationInfo: AdditionalGeneMutationInfo?
     ): Boolean {
-        // Allow mutations that might change the operation type
-        return randomness.nextBoolean(0.2)
+        // CompositeFixedGene does not have mutable structure,
+        // shallow mutation is not applicable
+        return false
     }
 
     override fun isMutable(): Boolean {
@@ -207,21 +183,18 @@ class JsonPatchOperationGene(
     ): String {
         val parts = mutableListOf<String>()
 
-        // Add operation
         val opValue = opGene.values[opGene.index]
         parts.add("\"op\":\"$opValue\"")
 
-        // Add path
-        val pathValue = pathGene.getValueAsPrintableString(previousGenes, mode, targetFormat)
+        // path is always a raw string (JSON Pointer), we control its quoting here
+        val pathValue = pathGene.getValueAsRawString()
         parts.add("\"path\":\"$pathValue\"")
 
-        // Add from if active
-        if (fromGene.isActive) {
-            val fromValue = (fromGene.gene as JsonPointerGene).getValueAsPrintableString(previousGenes, mode, targetFormat)
+        if (fromGene.isActive && fromGene.gene is JsonPointerGene) {
+            val fromValue = (fromGene.gene as JsonPointerGene).getValueAsRawString()
             parts.add("\"from\":\"$fromValue\"")
         }
 
-        // Add value if active
         if (valueGene.isActive) {
             val valueStr = valueGene.gene.getValueAsPrintableString(previousGenes, mode, targetFormat)
             parts.add("\"value\":$valueStr")
@@ -261,8 +234,6 @@ class JsonPatchOperationGene(
     }
 
     override fun unsafeSetFromStringValue(value: String): Boolean {
-        // This would require JSON parsing, which is complex
-        // For now, we don't support it
         log.warn("unsafeSetFromStringValue not supported for JsonPatchOperationGene")
         return false
     }

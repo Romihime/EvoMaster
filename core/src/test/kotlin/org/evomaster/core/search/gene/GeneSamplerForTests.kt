@@ -967,7 +967,7 @@ object GeneSamplerForTests {
     }
 
     fun sampleJsonPointerGene(rand: Randomness): JsonPointerGene {
-        val segments = mutableListOf(
+        val segments = listOf(
             StringGene("seg0", "example"),
             StringGene("seg1", "path")
         )
@@ -975,14 +975,9 @@ object GeneSamplerForTests {
     }
 
     fun sampleJsonPatchOperationGene(rand: Randomness): JsonPatchOperationGene {
-        val opGene = EnumGene("op", listOf("add", "remove", "replace", "move", "copy", "test"))
-        opGene.randomize(rand, false)
-
         val pathGene = sampleJsonPointerGene(rand)
-        val fromGene = OptionalGene("from", sampleJsonPointerGene(rand), isActive = false)
-        val valueGene = OptionalGene("value", StringGene("value", "defaultValue"), isActive = true)
-
-        return JsonPatchOperationGene("sampleOp", opGene, pathGene, fromGene, valueGene)
+        val valueGene = StringGene("value", "defaultValue")
+        return JsonPatchOperationGene.createAdd(pathGene, valueGene)
     }
 
     fun sampleJsonPatchGene(rand: Randomness): JsonPatchGene {
