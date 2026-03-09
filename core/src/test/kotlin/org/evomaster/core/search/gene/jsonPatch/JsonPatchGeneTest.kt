@@ -1,7 +1,9 @@
 package org.evomaster.core.search.gene.jsonPatch
 
-import org.evomaster.core.search.gene.string.StringGene
+import org.evomaster.core.search.gene.BooleanGene
+import org.evomaster.core.search.gene.ObjectGene
 import org.evomaster.core.search.gene.numeric.IntegerGene
+import org.evomaster.core.search.gene.string.StringGene
 import org.evomaster.core.search.service.Randomness
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -65,7 +67,7 @@ class JsonPatchGeneTest {
 
         assertTrue(patch.operations.isNotEmpty())
         assertTrue(patch.operations.size >= JsonPatchGene.MIN_OPERATIONS)
-        assertTrue(patch.operations.size <= JsonPatchGene.MAX_OPERATIONS)
+        assertTrue(patch.operations.size <= JsonPatchGene.DEFAULT_MAX_OPERATIONS)
 
         val json = patch.getValueAsPrintableString()
         assertTrue(json.startsWith("["))
@@ -226,5 +228,80 @@ class JsonPatchGeneTest {
         patch2.unsafeCopyValueFrom(patch1)
 
         assertTrue(patch2.containsSameValueAs(patch1))
+    }
+
+    // --- Schema-aware tests ---
+
+    private fun createSampleSchema(): ObjectGene {
+        return ObjectGene(
+            "resource",
+            listOf(
+                StringGene("name"),
+                IntegerGene("age"),
+                BooleanGene("active")
+            ),
+            refType = null,
+            isFixed = true,
+            template = null,
+            additionalFields = null
+        )
+    }
+
+    @Test
+    fun testRandomizeWithSchemaUsesFieldNames() {
+        val schema = createSampleSchema()
+        val patch = JsonPatchGene("patch", schema)
+        val randomness = Randomness()
+        randomness.updateSeed(42)
+
+        val allPathSegments = mutableSetOf<String>()
+        repeat(20) {
+            patch.randomize(randomness, false)
+            for (op in patch.operations) {
+                for (seg in op.pathGene.segments) {
+                    allPathSegments.add(seg.getValueAsRawString())
+                }
+            }
+        }
+
+        val schemaFields = setOf("name", "age", "active")
+        val schemaFieldsUsed = allPathSegments.intersect(schemaFields)
+        assertTrue(schemaFieldsUsed.isNotEmpty(),
+            "Expected schema field names in generated paths, got: $allPathSegments")
+    }
+
+    @Test
+    fun testRandomizeWithSchemaCanExceedOldMaxOperations() {
+        val patch = JsonPatchGene("patch", null)
+        val randomness = Randomness()
+
+        var foundLargerThan5 = false
+        for (seed in 0L..100L) {
+            randomness.updateSeed(seed)
+            patch.randomize(randomness, false)
+            if (patch.operations.size > 5) {
+                foundLargerThan5 = true
+                break
+            }
+        }
+
+        assertTrue(foundLargerThan5,
+            "Expected at least one randomization to produce more than 5 operations " +
+                    "since the limit was raised to ${JsonPatchGene.DEFAULT_MAX_OPERATIONS}")
+    }
+
+    @Test
+    fun testRandomizeWithSchemaProducesNonEmptyOperations() {
+        val schema = createSampleSchema()
+        val patch = JsonPatchGene("patch", schema)
+        val randomness = Randomness()
+        randomness.updateSeed(99)
+
+        patch.randomize(randomness, false)
+
+        assertTrue(patch.operations.isNotEmpty())
+        val json = patch.getValueAsPrintableString()
+        assertTrue(json.startsWith("["))
+        assertTrue(json.endsWith("]"))
     }
 }

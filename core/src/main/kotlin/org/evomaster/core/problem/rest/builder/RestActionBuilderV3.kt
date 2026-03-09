@@ -742,6 +742,12 @@ object RestActionBuilderV3 {
                     messages
                 )
 
+                if (resourceGene == null) {
+                    log.warn("No resource schema found for JSON Patch on $verb:$restPath. " +
+                            "Paths and values will be generated randomly without schema guidance. " +
+                            "Consider adding a GET endpoint on the same path to improve test generation quality.")
+                }
+
                 val gene = JsonPatchGene("jsonPatchBody", resourceGene)
 
                 if (resolvedBody.required != true && gene !is OptionalGene) {

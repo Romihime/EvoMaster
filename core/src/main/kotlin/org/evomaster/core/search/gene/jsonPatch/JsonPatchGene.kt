@@ -2,8 +2,12 @@ package org.evomaster.core.search.gene.jsonPatch
 
 import org.evomaster.core.output.OutputFormat
 import org.evomaster.core.search.gene.Gene
+import org.evomaster.core.search.gene.ObjectGene
+import org.evomaster.core.search.gene.collection.ArrayGene
 import org.evomaster.core.search.gene.numeric.DoubleGene
+import org.evomaster.core.search.gene.numeric.FloatGene
 import org.evomaster.core.search.gene.numeric.IntegerGene
+import org.evomaster.core.search.gene.numeric.LongGene
 import org.evomaster.core.search.gene.BooleanGene
 import org.evomaster.core.search.gene.root.CompositeGene
 import org.evomaster.core.search.gene.string.StringGene
@@ -38,7 +42,7 @@ class JsonPatchGene(
         private val log: Logger = LoggerFactory.getLogger(JsonPatchGene::class.java)
 
         const val MIN_OPERATIONS = 1
-        const val MAX_OPERATIONS = 5
+        const val DEFAULT_MAX_OPERATIONS = 10
     }
 
     val operations: List<JsonPatchOperationGene>
@@ -55,14 +59,14 @@ class JsonPatchGene(
 
         return when (opType) {
             "add" -> {
-                val value = createRandomValueGene(randomness)
+                val value = createValueForPath(pathGene, randomness)
                 JsonPatchOperationGene.createAdd(pathGene, value)
             }
             "remove" -> {
                 JsonPatchOperationGene.createRemove(pathGene)
             }
             "replace" -> {
-                val value = createRandomValueGene(randomness)
+                val value = createValueForPath(pathGene, randomness)
                 JsonPatchOperationGene.createReplace(pathGene, value)
             }
             "move" -> {
@@ -76,7 +80,7 @@ class JsonPatchGene(
                 JsonPatchOperationGene.createCopy(fromGene, pathGene)
             }
             "test" -> {
-                val value = createRandomValueGene(randomness)
+                val value = createValueForPath(pathGene, randomness)
                 JsonPatchOperationGene.createTest(pathGene, value)
             }
             else -> {
@@ -87,8 +91,39 @@ class JsonPatchGene(
     }
 
     /**
-     * Create a random value gene. Uses diverse types (string, int, double, boolean)
-     * instead of always defaulting to StringGene.
+     * Create a value gene that matches the type of the field pointed to by the path.
+     * If resourceSchema is available, resolves the path to determine the correct type.
+     * Falls back to a random type if schema is unavailable or path cannot be resolved.
+     */
+    private fun createValueForPath(pathGene: JsonPointerGene, randomness: Randomness): Gene {
+        val resolvedGene = JsonPointerGene.resolveGeneAtPath(resourceSchema, pathGene.segments)
+
+        if (resolvedGene != null) {
+            return createValueMatchingType(resolvedGene, randomness)
+        }
+
+        return createRandomValueGene(randomness)
+    }
+
+    /**
+     * Create a value gene that matches the type of the given gene from the schema.
+     */
+    private fun createValueMatchingType(schemaGene: Gene, randomness: Randomness): Gene {
+        return when (schemaGene) {
+            is StringGene -> StringGene("value", randomness.nextWordString(1, 20))
+            is IntegerGene -> IntegerGene("value", randomness.nextInt(0, 1000))
+            is LongGene -> IntegerGene("value", randomness.nextInt(0, 1000))
+            is DoubleGene -> DoubleGene("value", randomness.nextDouble())
+            is FloatGene -> DoubleGene("value", randomness.nextDouble())
+            is BooleanGene -> BooleanGene("value", randomness.nextBoolean())
+            is ObjectGene -> StringGene("value", "{}")
+            is ArrayGene<*> -> StringGene("value", "[]")
+            else -> createRandomValueGene(randomness)
+        }
+    }
+
+    /**
+     * Create a random value gene when no schema information is available.
      */
     private fun createRandomValueGene(randomness: Randomness): Gene {
         return when (randomness.nextInt(0, 3)) {
@@ -134,7 +169,7 @@ class JsonPatchGene(
     override fun randomize(randomness: Randomness, tryToForceNewValue: Boolean) {
         killAllChildren()
 
-        val numOps = randomness.nextInt(MIN_OPERATIONS, MAX_OPERATIONS)
+        val numOps = randomness.nextInt(MIN_OPERATIONS, DEFAULT_MAX_OPERATIONS)
         repeat(numOps) {
             val operation = createRandomOperation(randomness)
             addOperation(operation)
@@ -147,9 +182,6 @@ class JsonPatchGene(
         enableAdaptiveGeneMutation: Boolean,
         additionalGeneMutationInfo: AdditionalGeneMutationInfo?
     ): Boolean {
-        if (operations.size == MIN_OPERATIONS && operations.size == MAX_OPERATIONS) {
-            return false
-        }
         if (operations.isEmpty()) return true
         return randomness.nextBoolean(0.3)
     }
@@ -162,9 +194,7 @@ class JsonPatchGene(
         enableAdaptiveGeneMutation: Boolean,
         additionalGeneMutationInfo: AdditionalGeneMutationInfo?
     ): Boolean {
-        if (operations.size < MAX_OPERATIONS &&
-            (operations.size <= MIN_OPERATIONS || operations.isEmpty() || randomness.nextBoolean())
-        ) {
+        if (operations.size <= MIN_OPERATIONS || operations.isEmpty() || randomness.nextBoolean()) {
             val op = createRandomOperation(randomness)
             addInitializedOperation(op, randomness)
         } else if (operations.size > MIN_OPERATIONS) {

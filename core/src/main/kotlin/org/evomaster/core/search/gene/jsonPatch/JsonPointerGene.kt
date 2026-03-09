@@ -2,9 +2,12 @@ package org.evomaster.core.search.gene.jsonPatch
 
 import org.evomaster.core.output.OutputFormat
 import org.evomaster.core.search.gene.Gene
+import org.evomaster.core.search.gene.ObjectGene
+import org.evomaster.core.search.gene.collection.ArrayGene
 import org.evomaster.core.search.gene.root.CompositeGene
 import org.evomaster.core.search.gene.string.StringGene
 import org.evomaster.core.search.gene.utils.GeneUtils
+import org.evomaster.core.search.gene.wrapper.OptionalGene
 import org.evomaster.core.search.service.AdaptiveParameterControl
 import org.evomaster.core.search.service.Randomness
 import org.evomaster.core.search.service.mutator.MutationWeightControl
@@ -68,6 +71,80 @@ class JsonPointerGene(
                 .replace("~", "~0")
                 .replace("/", "~1")
         }
+
+        /**
+         * Extract field names from a resource schema Gene recursively.
+         * Unwraps OptionalGene wrappers and traverses ObjectGene fields
+         * and ArrayGene templates to collect all reachable field names.
+         */
+        fun extractFieldNames(schema: Gene?): List<String> {
+            if (schema == null) return emptyList()
+
+            val names = mutableSetOf<String>()
+            collectFieldNames(schema, names, depth = 0)
+            return names.toList()
+        }
+
+        private fun collectFieldNames(gene: Gene, names: MutableSet<String>, depth: Int) {
+            if (depth > 5) return
+
+            val unwrapped = unwrapGene(gene)
+
+            when (unwrapped) {
+                is ObjectGene -> {
+                    for (field in unwrapped.fixedFields) {
+                        names.add(field.name)
+                        collectFieldNames(field, names, depth + 1)
+                    }
+                }
+                is ArrayGene<*> -> {
+                    collectFieldNames(unwrapped.template, names, depth + 1)
+                }
+            }
+        }
+
+        private fun unwrapGene(gene: Gene): Gene {
+            var current = gene
+            while (current is OptionalGene) {
+                current = current.gene
+            }
+            return current
+        }
+
+        /**
+         * Resolve a JSON Pointer path against a resource schema to find
+         * the Gene type at that location. Returns null if the path cannot
+         * be resolved.
+         */
+        fun resolveGeneAtPath(schema: Gene?, segments: List<StringGene>): Gene? {
+            if (schema == null || segments.isEmpty()) return schema
+
+            var current = unwrapGene(schema)
+
+            for (seg in segments) {
+                val segValue = seg.getValueAsRawString()
+
+                when (current) {
+                    is ObjectGene -> {
+                        val field = current.fixedFields.find { it.name == segValue }
+                            ?: return null
+                        current = unwrapGene(field)
+                    }
+                    is ArrayGene<*> -> {
+                        current = unwrapGene(current.template)
+                        if (current is ObjectGene) {
+                            val field = current.fixedFields.find { it.name == segValue }
+                            if (field != null) {
+                                current = unwrapGene(field)
+                            }
+                        }
+                    }
+                    else -> return null
+                }
+            }
+
+            return current
+        }
     }
 
     /**
@@ -78,7 +155,9 @@ class JsonPointerGene(
 
     override fun copyContent(): Gene {
         val copiedSegments = segments.map { it.copy() as StringGene }
-        return JsonPointerGene(name, copiedSegments, resourceSchema)
+        // resourceSchema is shared by reference intentionally: it is a read-only template
+        // used only to extract field names, never mutated
+        return JsonPointerGene(name, copiedSegments, resourceSchema?.copy())
     }
 
     override fun checkForLocallyValidIgnoringChildren(): Boolean {
@@ -88,10 +167,15 @@ class JsonPointerGene(
     override fun randomize(randomness: Randomness, tryToForceNewValue: Boolean) {
         killAllChildren()
 
-        val numSegments = randomness.nextInt(0, MAX_SEGMENTS)
+        val fieldNames = extractFieldNames(resourceSchema)
+        val numSegments = randomness.nextInt(1, MAX_SEGMENTS)
         for (i in 0 until numSegments) {
-            val segment = StringGene("seg$i", randomness.nextWordString(1, 10))
-            addChild(segment)
+            val segValue = if (fieldNames.isNotEmpty() && randomness.nextBoolean(0.8)) {
+                randomness.choose(fieldNames)
+            } else {
+                randomness.nextWordString(1, 10)
+            }
+            addChild(StringGene("seg$i", segValue))
         }
     }
 
@@ -113,8 +197,14 @@ class JsonPointerGene(
         enableAdaptiveGeneMutation: Boolean,
         additionalGeneMutationInfo: AdditionalGeneMutationInfo?
     ): Boolean {
+        val fieldNames = extractFieldNames(resourceSchema)
         if (segments.size < MAX_SEGMENTS && (segments.isEmpty() || randomness.nextBoolean())) {
-            val newSeg = StringGene("seg${segments.size}", randomness.nextWordString(1, 10))
+            val segValue = if (fieldNames.isNotEmpty() && randomness.nextBoolean(0.8)) {
+                randomness.choose(fieldNames)
+            } else {
+                randomness.nextWordString(1, 10)
+            }
+            val newSeg = StringGene("seg${segments.size}", segValue)
             addInitializedChild(newSeg, randomness)
         } else if (segments.isNotEmpty()) {
             killChildByIndex(randomness.nextInt(segments.size))

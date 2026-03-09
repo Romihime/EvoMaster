@@ -1,6 +1,10 @@
 package org.evomaster.core.search.gene.jsonPatch
 
+import org.evomaster.core.search.gene.BooleanGene
+import org.evomaster.core.search.gene.ObjectGene
+import org.evomaster.core.search.gene.numeric.IntegerGene
 import org.evomaster.core.search.gene.string.StringGene
+import org.evomaster.core.search.gene.wrapper.OptionalGene
 import org.evomaster.core.search.service.Randomness
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -199,8 +203,8 @@ class JsonPointerGeneTest {
 
         pointer.randomize(randomness, false)
 
-        // After randomize, segments should be within bounds
-        assertTrue(pointer.segments.size in 0..4)
+        // After randomize, segments should be within bounds (min 1, max 4)
+        assertTrue(pointer.segments.size in 1..4)
     }
 
     @Test
@@ -218,5 +222,126 @@ class JsonPointerGeneTest {
 
         assertTrue(p2.containsSameValueAs(p1))
         assertEquals(2, p2.segments.size)
+    }
+
+    // --- Schema-aware tests ---
+
+    private fun createSampleSchema(): ObjectGene {
+        return ObjectGene(
+            "resource",
+            listOf(
+                StringGene("name"),
+                IntegerGene("age"),
+                BooleanGene("active"),
+                OptionalGene("email", StringGene("email"))
+            ),
+            refType = null,
+            isFixed = true,
+            template = null,
+            additionalFields = null
+        )
+    }
+
+    @Test
+    fun testExtractFieldNamesFromObjectGene() {
+        val schema = createSampleSchema()
+        val fieldNames = JsonPointerGene.extractFieldNames(schema)
+
+        assertTrue(fieldNames.contains("name"))
+        assertTrue(fieldNames.contains("age"))
+        assertTrue(fieldNames.contains("active"))
+        assertTrue(fieldNames.contains("email"))
+    }
+
+    @Test
+    fun testExtractFieldNamesReturnsEmptyForNull() {
+        val fieldNames = JsonPointerGene.extractFieldNames(null)
+        assertTrue(fieldNames.isEmpty())
+    }
+
+    @Test
+    fun testExtractFieldNamesFromPrimitive() {
+        val fieldNames = JsonPointerGene.extractFieldNames(StringGene("simple"))
+        assertTrue(fieldNames.isEmpty())
+    }
+
+    @Test
+    fun testRandomizeUsesSchemaFieldNames() {
+        val schema = createSampleSchema()
+        val pointer = JsonPointerGene("ptr", emptyList(), schema)
+        val randomness = Randomness()
+        randomness.updateSeed(42)
+
+        // Run multiple times to increase confidence
+        val allSegValues = mutableSetOf<String>()
+        repeat(20) {
+            pointer.randomize(randomness, false)
+            pointer.segments.forEach { allSegValues.add(it.getValueAsRawString()) }
+        }
+
+        val schemaFields = setOf("name", "age", "active", "email")
+        val schemaFieldsUsed = allSegValues.intersect(schemaFields)
+        assertTrue(schemaFieldsUsed.isNotEmpty(),
+            "Expected at least some schema field names to be used, got: $allSegValues")
+    }
+
+    @Test
+    fun testResolveGeneAtPathFindsField() {
+        val schema = createSampleSchema()
+        val segments = listOf(StringGene("s0", "name"))
+
+        val resolved = JsonPointerGene.resolveGeneAtPath(schema, segments)
+        assertNotNull(resolved)
+        assertTrue(resolved is StringGene)
+    }
+
+    @Test
+    fun testResolveGeneAtPathFindsIntegerField() {
+        val schema = createSampleSchema()
+        val segments = listOf(StringGene("s0", "age"))
+
+        val resolved = JsonPointerGene.resolveGeneAtPath(schema, segments)
+        assertNotNull(resolved)
+        assertTrue(resolved is IntegerGene)
+    }
+
+    @Test
+    fun testResolveGeneAtPathUnwrapsOptional() {
+        val schema = createSampleSchema()
+        val segments = listOf(StringGene("s0", "email"))
+
+        val resolved = JsonPointerGene.resolveGeneAtPath(schema, segments)
+        assertNotNull(resolved)
+        assertTrue(resolved is StringGene, "Expected StringGene after unwrapping OptionalGene, got: ${resolved?.javaClass}")
+    }
+
+    @Test
+    fun testResolveGeneAtPathReturnsNullForMissingField() {
+        val schema = createSampleSchema()
+        val segments = listOf(StringGene("s0", "nonexistent"))
+
+        val resolved = JsonPointerGene.resolveGeneAtPath(schema, segments)
+        assertNull(resolved)
+    }
+
+    @Test
+    fun testResolveGeneAtPathEmptySegments() {
+        val schema = createSampleSchema()
+        val resolved = JsonPointerGene.resolveGeneAtPath(schema, emptyList())
+
+        assertNotNull(resolved)
+        assertTrue(resolved is ObjectGene)
+    }
+
+    @Test
+    fun testCopyContentPreservesResourceSchema() {
+        val schema = createSampleSchema()
+        val pointer = JsonPointerGene("ptr", listOf(StringGene("s0", "name")), schema)
+
+        val copy = pointer.copy() as JsonPointerGene
+
+        assertNotNull(copy.resourceSchema)
+        val fieldNames = JsonPointerGene.extractFieldNames(copy.resourceSchema)
+        assertTrue(fieldNames.contains("name"))
     }
 }
