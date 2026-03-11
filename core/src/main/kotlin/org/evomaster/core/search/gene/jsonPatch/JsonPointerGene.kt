@@ -157,7 +157,7 @@ class JsonPointerGene(
         val copiedSegments = segments.map { it.copy() as StringGene }
         // resourceSchema is shared by reference intentionally: it is a read-only template
         // used only to extract field names, never mutated
-        return JsonPointerGene(name, copiedSegments, resourceSchema?.copy())
+        return JsonPointerGene(name, copiedSegments, resourceSchema)
     }
 
     override fun checkForLocallyValidIgnoringChildren(): Boolean {

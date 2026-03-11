@@ -748,20 +748,15 @@ object RestActionBuilderV3 {
                             "Consider adding a GET endpoint on the same path to improve test generation quality.")
                 }
 
-                val gene = JsonPatchGene("jsonPatchBody", resourceGene)
+                val gene = possiblyOptional(
+                    JsonPatchGene("jsonPatchBody", resourceGene),
+                    resolvedBody.required
+                )
 
-                if (resolvedBody.required != true && gene !is OptionalGene) {
-                    val wrappedGene = OptionalGene("jsonPatchBody", gene)
-                    val contentTypeGene = EnumGene<String>("contentType", bodies.keys.toList())
-                    val bodyParam = BodyParam(wrappedGene, contentTypeGene)
-                        .apply { this.description = description }
-                    params.add(bodyParam)
-                } else {
-                    val contentTypeGene = EnumGene<String>("contentType", bodies.keys.toList())
-                    val bodyParam = BodyParam(gene, contentTypeGene)
-                        .apply { this.description = description }
-                    params.add(bodyParam)
-                }
+                val contentTypeGene = EnumGene<String>("contentType", bodies.keys.toList())
+                val bodyParam = BodyParam(gene, contentTypeGene)
+                    .apply { this.description = description }
+                params.add(bodyParam)
 
                 messages.add("Added JsonPatchGene for $verb:$restPath")
                 return

@@ -112,12 +112,20 @@ class JsonPatchGene(
         return when (schemaGene) {
             is StringGene -> StringGene("value", randomness.nextWordString(1, 20))
             is IntegerGene -> IntegerGene("value", randomness.nextInt(0, 1000))
-            is LongGene -> IntegerGene("value", randomness.nextInt(0, 1000))
+            is LongGene -> LongGene("value", randomness.nextInt(0, 1000).toLong())
             is DoubleGene -> DoubleGene("value", randomness.nextDouble())
-            is FloatGene -> DoubleGene("value", randomness.nextDouble())
+            is FloatGene -> FloatGene("value", randomness.nextDouble().toFloat())
             is BooleanGene -> BooleanGene("value", randomness.nextBoolean())
-            is ObjectGene -> StringGene("value", "{}")
-            is ArrayGene<*> -> StringGene("value", "[]")
+            is ObjectGene -> {
+                val copy = schemaGene.copy() as ObjectGene
+                copy.randomize(randomness, false)
+                copy
+            }
+            is ArrayGene<*> -> {
+                val copy = schemaGene.copy() as ArrayGene<*>
+                copy.randomize(randomness, false)
+                copy
+            }
             else -> createRandomValueGene(randomness)
         }
     }
@@ -194,13 +202,16 @@ class JsonPatchGene(
         enableAdaptiveGeneMutation: Boolean,
         additionalGeneMutationInfo: AdditionalGeneMutationInfo?
     ): Boolean {
-        if (operations.size <= MIN_OPERATIONS || operations.isEmpty() || randomness.nextBoolean()) {
+        if (operations.isEmpty() || operations.size <= MIN_OPERATIONS) {
             val op = createRandomOperation(randomness)
             addInitializedOperation(op, randomness)
-        } else if (operations.size > MIN_OPERATIONS) {
+        } else if (operations.size >= DEFAULT_MAX_OPERATIONS) {
             removeOperation(randomness.nextInt(operations.size))
+        } else if (randomness.nextBoolean()) {
+            val op = createRandomOperation(randomness)
+            addInitializedOperation(op, randomness)
         } else {
-            return false
+            removeOperation(randomness.nextInt(operations.size))
         }
         return true
     }

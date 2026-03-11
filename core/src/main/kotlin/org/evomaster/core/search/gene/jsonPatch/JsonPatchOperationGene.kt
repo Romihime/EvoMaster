@@ -54,12 +54,18 @@ class JsonPatchOperationGene(
 
         val VALID_OPS = listOf("add", "remove", "replace", "move", "copy", "test")
 
-        // NOTE: EnumGene sorts values alphabetically, so actual order is:
-        // ["add", "copy", "move", "remove", "replace", "test"]
-        //   0      1       2       3         4           5
+        // EnumGene sorts values alphabetically. Compute sorted indices dynamically
+        // to avoid breakage if EnumGene internals change.
+        private val SORTED_OPS = VALID_OPS.sorted()
+
+        private fun opIndex(opName: String): Int {
+            val idx = SORTED_OPS.indexOf(opName)
+            if (idx < 0) throw IllegalArgumentException("Unknown op: $opName")
+            return idx
+        }
 
         fun createAdd(pathGene: JsonPointerGene, valueGene: Gene): JsonPatchOperationGene {
-            val op = EnumGene("op", VALID_OPS, 0) // "add" is at sorted index 0
+            val op = EnumGene("op", VALID_OPS, opIndex("add"))
             val from = OptionalGene("from", JsonPointerGene("from"), isActive = false)
             val value = OptionalGene("value", valueGene, isActive = true)
 
@@ -67,7 +73,7 @@ class JsonPatchOperationGene(
         }
 
         fun createRemove(pathGene: JsonPointerGene): JsonPatchOperationGene {
-            val op = EnumGene("op", VALID_OPS, 3) // "remove" is at sorted index 3
+            val op = EnumGene("op", VALID_OPS, opIndex("remove"))
             val from = OptionalGene("from", JsonPointerGene("from"), isActive = false)
             val value = OptionalGene("value", StringGene("value"), isActive = false)
 
@@ -75,7 +81,7 @@ class JsonPatchOperationGene(
         }
 
         fun createReplace(pathGene: JsonPointerGene, valueGene: Gene): JsonPatchOperationGene {
-            val op = EnumGene("op", VALID_OPS, 4) // "replace" is at sorted index 4
+            val op = EnumGene("op", VALID_OPS, opIndex("replace"))
             val from = OptionalGene("from", JsonPointerGene("from"), isActive = false)
             val value = OptionalGene("value", valueGene, isActive = true)
 
@@ -83,7 +89,7 @@ class JsonPatchOperationGene(
         }
 
         fun createMove(fromGene: JsonPointerGene, pathGene: JsonPointerGene): JsonPatchOperationGene {
-            val op = EnumGene("op", VALID_OPS, 2) // "move" is at sorted index 2
+            val op = EnumGene("op", VALID_OPS, opIndex("move"))
             val from = OptionalGene("from", fromGene, isActive = true)
             val value = OptionalGene("value", StringGene("value"), isActive = false)
 
@@ -91,7 +97,7 @@ class JsonPatchOperationGene(
         }
 
         fun createCopy(fromGene: JsonPointerGene, pathGene: JsonPointerGene): JsonPatchOperationGene {
-            val op = EnumGene("op", VALID_OPS, 1) // "copy" is at sorted index 1
+            val op = EnumGene("op", VALID_OPS, opIndex("copy"))
             val from = OptionalGene("from", fromGene, isActive = true)
             val value = OptionalGene("value", StringGene("value"), isActive = false)
 
@@ -99,7 +105,7 @@ class JsonPatchOperationGene(
         }
 
         fun createTest(pathGene: JsonPointerGene, valueGene: Gene): JsonPatchOperationGene {
-            val op = EnumGene("op", VALID_OPS, 5) // "test" is at sorted index 5
+            val op = EnumGene("op", VALID_OPS, opIndex("test"))
             val from = OptionalGene("from", JsonPointerGene("from"), isActive = false)
             val value = OptionalGene("value", valueGene, isActive = true)
 
