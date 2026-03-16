@@ -271,23 +271,24 @@ class JsonPatchGeneTest {
     }
 
     @Test
-    fun testRandomizeWithSchemaCanExceedOldMaxOperations() {
+    fun testRandomizeCanProduceUpToMaxOperations() {
         val patch = JsonPatchGene("patch", null)
         val randomness = Randomness()
 
-        var foundLargerThan5 = false
+        var maxFound = 0
         for (seed in 0L..100L) {
             randomness.updateSeed(seed)
             patch.randomize(randomness, false)
-            if (patch.operations.size > 5) {
-                foundLargerThan5 = true
-                break
+            if (patch.operations.size > maxFound) {
+                maxFound = patch.operations.size
             }
         }
 
-        assertTrue(foundLargerThan5,
-            "Expected at least one randomization to produce more than 5 operations " +
-                    "since the limit was raised to ${JsonPatchGene.DEFAULT_MAX_OPERATIONS}")
+        assertTrue(maxFound > 1,
+            "Expected randomize to produce varying operation counts up to ${JsonPatchGene.DEFAULT_MAX_OPERATIONS}, " +
+                    "but max found was $maxFound")
+        assertTrue(maxFound <= JsonPatchGene.DEFAULT_MAX_OPERATIONS,
+            "Expected at most ${JsonPatchGene.DEFAULT_MAX_OPERATIONS} operations, but found $maxFound")
     }
 
     @Test

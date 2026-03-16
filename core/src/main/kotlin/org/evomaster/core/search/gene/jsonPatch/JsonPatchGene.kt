@@ -180,7 +180,7 @@ class JsonPatchGene(
         val numOps = randomness.nextInt(MIN_OPERATIONS, DEFAULT_MAX_OPERATIONS)
         repeat(numOps) {
             val operation = createRandomOperation(randomness)
-            addOperation(operation)
+            addInitializedOperation(operation, randomness)
         }
     }
 

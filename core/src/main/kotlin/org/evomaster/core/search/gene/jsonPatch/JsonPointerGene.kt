@@ -175,7 +175,7 @@ class JsonPointerGene(
             } else {
                 randomness.nextWordString(1, 10)
             }
-            addChild(StringGene("seg$i", segValue))
+            addInitializedChild(StringGene("seg$i", segValue), randomness)
         }
     }
 

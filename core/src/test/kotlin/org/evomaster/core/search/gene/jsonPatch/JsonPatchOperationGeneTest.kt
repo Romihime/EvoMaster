@@ -24,9 +24,7 @@ class JsonPatchOperationGeneTest {
         val gene = JsonPatchOperationGene.createAdd(pathGene, valueGene)
 
         val json = gene.getValueAsPrintableString()
-        assertTrue(json.contains("\"op\":\"add\""))
-        assertTrue(json.contains("\"path\":\"/count\""))
-        assertTrue(json.contains("\"value\":42"))
+        assertEquals("""{"op":"add","path":"/count","value":42}""", json)
     }
 
     @Test
@@ -45,9 +43,7 @@ class JsonPatchOperationGeneTest {
         val gene = JsonPatchOperationGene.createReplace(pathGene, valueGene)
 
         val json = gene.getValueAsPrintableString()
-        assertTrue(json.contains("\"op\":\"replace\""))
-        assertTrue(json.contains("\"path\":\"/d\""))
-        assertTrue(json.contains("\"value\":99"))
+        assertEquals("""{"op":"replace","path":"/d","value":99}""", json)
     }
 
     @Test
@@ -77,9 +73,7 @@ class JsonPatchOperationGeneTest {
         val gene = JsonPatchOperationGene.createTest(pathGene, valueGene)
 
         val json = gene.getValueAsPrintableString()
-        assertTrue(json.contains("\"op\":\"test\""))
-        assertTrue(json.contains("\"path\":\"/status\""))
-        assertTrue(json.contains("\"value\":\"active\""))
+        assertEquals("""{"op":"test","path":"/status","value":"active"}""", json)
     }
 
     @Test
