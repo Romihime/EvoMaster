@@ -64,25 +64,25 @@ class JsonPatchOperationGene(
             return idx
         }
 
-        fun createAdd(pathGene: JsonPointerGene, valueGene: Gene): JsonPatchOperationGene {
+        fun createAdd(pathGene: JsonPointerGene, valueGene: Gene, resourceSchema: Gene? = null): JsonPatchOperationGene {
             val op = EnumGene("op", VALID_OPS, opIndex("add"))
-            val from = OptionalGene("from", JsonPointerGene("from"), isActive = false)
+            val from = OptionalGene("from", JsonPointerGene("from", emptyList(), resourceSchema), isActive = false)
             val value = OptionalGene("value", valueGene, isActive = true)
 
             return JsonPatchOperationGene("addOp", op, pathGene, from, value)
         }
 
-        fun createRemove(pathGene: JsonPointerGene): JsonPatchOperationGene {
+        fun createRemove(pathGene: JsonPointerGene, resourceSchema: Gene? = null): JsonPatchOperationGene {
             val op = EnumGene("op", VALID_OPS, opIndex("remove"))
-            val from = OptionalGene("from", JsonPointerGene("from"), isActive = false)
+            val from = OptionalGene("from", JsonPointerGene("from", emptyList(), resourceSchema), isActive = false)
             val value = OptionalGene("value", StringGene("value"), isActive = false)
 
             return JsonPatchOperationGene("removeOp", op, pathGene, from, value)
         }
 
-        fun createReplace(pathGene: JsonPointerGene, valueGene: Gene): JsonPatchOperationGene {
+        fun createReplace(pathGene: JsonPointerGene, valueGene: Gene, resourceSchema: Gene? = null): JsonPatchOperationGene {
             val op = EnumGene("op", VALID_OPS, opIndex("replace"))
-            val from = OptionalGene("from", JsonPointerGene("from"), isActive = false)
+            val from = OptionalGene("from", JsonPointerGene("from", emptyList(), resourceSchema), isActive = false)
             val value = OptionalGene("value", valueGene, isActive = true)
 
             return JsonPatchOperationGene("replaceOp", op, pathGene, from, value)
@@ -104,9 +104,9 @@ class JsonPatchOperationGene(
             return JsonPatchOperationGene("copyOp", op, pathGene, from, value)
         }
 
-        fun createTest(pathGene: JsonPointerGene, valueGene: Gene): JsonPatchOperationGene {
+        fun createTest(pathGene: JsonPointerGene, valueGene: Gene, resourceSchema: Gene? = null): JsonPatchOperationGene {
             val op = EnumGene("op", VALID_OPS, opIndex("test"))
-            val from = OptionalGene("from", JsonPointerGene("from"), isActive = false)
+            val from = OptionalGene("from", JsonPointerGene("from", emptyList(), resourceSchema), isActive = false)
             val value = OptionalGene("value", valueGene, isActive = true)
 
             return JsonPatchOperationGene("testOp", op, pathGene, from, value)

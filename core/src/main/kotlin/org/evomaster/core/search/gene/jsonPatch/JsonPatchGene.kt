@@ -60,14 +60,14 @@ class JsonPatchGene(
         return when (opType) {
             "add" -> {
                 val value = createValueForPath(pathGene, randomness)
-                JsonPatchOperationGene.createAdd(pathGene, value)
+                JsonPatchOperationGene.createAdd(pathGene, value, resourceSchema)
             }
             "remove" -> {
-                JsonPatchOperationGene.createRemove(pathGene)
+                JsonPatchOperationGene.createRemove(pathGene, resourceSchema)
             }
             "replace" -> {
                 val value = createValueForPath(pathGene, randomness)
-                JsonPatchOperationGene.createReplace(pathGene, value)
+                JsonPatchOperationGene.createReplace(pathGene, value, resourceSchema)
             }
             "move" -> {
                 val fromGene = JsonPointerGene("from", emptyList(), resourceSchema)
@@ -81,11 +81,11 @@ class JsonPatchGene(
             }
             "test" -> {
                 val value = createValueForPath(pathGene, randomness)
-                JsonPatchOperationGene.createTest(pathGene, value)
+                JsonPatchOperationGene.createTest(pathGene, value, resourceSchema)
             }
             else -> {
                 val value = StringGene("value", "default")
-                JsonPatchOperationGene.createAdd(pathGene, value)
+                JsonPatchOperationGene.createAdd(pathGene, value, resourceSchema)
             }
         }
     }
