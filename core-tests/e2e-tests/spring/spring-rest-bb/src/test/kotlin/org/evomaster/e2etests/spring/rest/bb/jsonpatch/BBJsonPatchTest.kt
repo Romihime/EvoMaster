@@ -31,7 +31,9 @@ class BBJsonPatchTest : SpringTestBase() {
             "BBJsonPatchEM",
             1000,
             3,
-            listOf("JSONPATCH_GET", "JSONPATCH_APPLIED")
+            listOf("JSONPATCH_GET", "JSONPATCH_APPLIED",
+                "JSONPATCH_ADD", "JSONPATCH_REPLACE", "JSONPATCH_REMOVE",
+                "JSONPATCH_TEST_FAIL")
         ) { args: MutableList<String> ->
 
             val solution = initAndRun(args)

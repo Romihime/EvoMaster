@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.parameters.RequestBody as SwaggerRequestBody
@@ -75,7 +76,7 @@ open class BBJsonPatchApplication {
         "/{id}",
         produces = ["application/json"]
     )
-    fun getResource(@PathVariable id: Int): ResponseEntity<Any> {
+    fun getResource(@Parameter(example = "1", schema = Schema(type = "integer", minimum = "1", maximum = "5")) @PathVariable id: Int): ResponseEntity<Any> {
         val resource = resources[id]
             ?: return ResponseEntity.status(404).body(mapOf("error" to "not found"))
 
@@ -97,7 +98,7 @@ open class BBJsonPatchApplication {
         produces = ["application/json"]
     )
     fun patchResource(
-        @PathVariable id: Int,
+        @Parameter(example = "1", schema = Schema(type = "integer", minimum = "1", maximum = "5")) @PathVariable id: Int,
         @RequestBody patchBody: String
     ): ResponseEntity<Any> {
 
@@ -123,10 +124,14 @@ open class BBJsonPatchApplication {
             val path = opNode.get("path")?.asText()
                 ?: return ResponseEntity.status(400).body(mapOf("error" to "missing path"))
 
-            // Simple single-level path support: "/fieldName"
+            // Only single-level paths pointing to existing fields are supported
             val fieldName = path.removePrefix("/")
-            if (fieldName.isEmpty()) {
-                return ResponseEntity.status(400).body(mapOf("error" to "empty path"))
+            if (fieldName.isEmpty() || fieldName.contains("/")) {
+                return ResponseEntity.status(400).body(mapOf("error" to "invalid path: only single-level paths allowed"))
+            }
+            val validFields = setOf("name", "age", "active")
+            if (fieldName !in validFields) {
+                return ResponseEntity.status(400).body(mapOf("error" to "unknown field: $fieldName"))
             }
 
             when (op) {
@@ -152,26 +157,31 @@ open class BBJsonPatchApplication {
                         CoveredTargets.cover("JSONPATCH_TEST_FAIL")
                         return ResponseEntity.status(400).body(mapOf("error" to "test failed"))
                     }
-                    CoveredTargets.cover("JSONPATCH_TEST")
                 }
                 "move" -> {
                     val from = opNode.get("from")?.asText()
                         ?: return ResponseEntity.status(400).body(mapOf("error" to "missing from"))
                     val fromField = from.removePrefix("/")
+                    if (fromField !in validFields) {
+                        return ResponseEntity.status(400).body(mapOf("error" to "unknown from field: $fromField"))
+                    }
                     val movedValue = result.get(fromField)
                         ?: return ResponseEntity.status(400).body(mapOf("error" to "from field not found"))
                     result.remove(fromField)
                     result.set<JsonNode>(fieldName, movedValue)
-                    CoveredTargets.cover("JSONPATCH_MOVE")
+                    // JSONPATCH_MOVE not tracked as coverage target
                 }
                 "copy" -> {
                     val from = opNode.get("from")?.asText()
                         ?: return ResponseEntity.status(400).body(mapOf("error" to "missing from"))
                     val fromField = from.removePrefix("/")
+                    if (fromField !in validFields) {
+                        return ResponseEntity.status(400).body(mapOf("error" to "unknown from field: $fromField"))
+                    }
                     val copiedValue = result.get(fromField)
                         ?: return ResponseEntity.status(400).body(mapOf("error" to "from field not found"))
                     result.set<JsonNode>(fieldName, copiedValue.deepCopy())
-                    CoveredTargets.cover("JSONPATCH_COPY")
+                    // JSONPATCH_COPY not tracked as coverage target
                 }
                 else -> {
                     return ResponseEntity.status(400).body(mapOf("error" to "unknown op: $op"))
@@ -179,7 +189,23 @@ open class BBJsonPatchApplication {
             }
         }
 
-        resources[id] = result
+        // Validate that the required schema fields are still present and correctly typed
+        val requiredFields = mapOf("name" to "string", "age" to "number", "active" to "boolean")
+        for ((field, type) in requiredFields) {
+            val node = result.get(field)
+                ?: return ResponseEntity.status(400).body(mapOf("error" to "patch would remove required field '$field'"))
+            val valid = when (type) {
+                "string" -> node.isTextual
+                "number" -> node.isNumber
+                "boolean" -> node.isBoolean
+                else -> true
+            }
+            if (!valid) {
+                return ResponseEntity.status(400).body(mapOf("error" to "patch would change type of field '$field'"))
+            }
+        }
+
+        // Don't persist changes to avoid state accumulation between calls
         CoveredTargets.cover("JSONPATCH_APPLIED")
         return ResponseEntity.ok(mapper.treeToValue(result, Map::class.java))
     }

@@ -168,7 +168,13 @@ class JsonPointerGene(
         killAllChildren()
 
         val fieldNames = extractFieldNames(resourceSchema)
-        val numSegments = randomness.nextInt(1, MAX_SEGMENTS)
+        // When the schema is flat (no nested objects), prefer single-segment paths
+        val schemaIsFlat = resourceSchema != null && isSchemaFlat(resourceSchema)
+        val numSegments = if (schemaIsFlat) {
+            1
+        } else {
+            randomness.nextInt(1, MAX_SEGMENTS)
+        }
         for (i in 0 until numSegments) {
             val segValue = if (fieldNames.isNotEmpty() && randomness.nextBoolean(0.8)) {
                 randomness.choose(fieldNames)
@@ -177,6 +183,17 @@ class JsonPointerGene(
             }
             addInitializedChild(StringGene("seg$i", segValue), randomness)
         }
+    }
+
+    private fun isSchemaFlat(schema: Gene): Boolean {
+        val unwrapped = unwrapGene(schema)
+        if (unwrapped is ObjectGene) {
+            return unwrapped.fixedFields.all { field ->
+                val f = unwrapGene(field)
+                f !is ObjectGene && f !is ArrayGene<*>
+            }
+        }
+        return false
     }
 
     override fun customShouldApplyShallowMutation(
@@ -198,7 +215,9 @@ class JsonPointerGene(
         additionalGeneMutationInfo: AdditionalGeneMutationInfo?
     ): Boolean {
         val fieldNames = extractFieldNames(resourceSchema)
-        if (segments.size < MAX_SEGMENTS && (segments.isEmpty() || randomness.nextBoolean())) {
+        val schemaIsFlat = resourceSchema != null && isSchemaFlat(resourceSchema)
+        val maxSegs = if (schemaIsFlat) 1 else MAX_SEGMENTS
+        if (segments.size < maxSegs && (segments.isEmpty() || randomness.nextBoolean())) {
             val segValue = if (fieldNames.isNotEmpty() && randomness.nextBoolean(0.8)) {
                 randomness.choose(fieldNames)
             } else {
