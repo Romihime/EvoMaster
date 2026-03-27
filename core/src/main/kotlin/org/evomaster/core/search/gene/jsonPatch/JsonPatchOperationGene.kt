@@ -196,14 +196,20 @@ class JsonPatchOperationGene(
         val pathValue = pathGene.getValueAsRawString()
         parts.add("\"path\":\"$pathValue\"")
 
-        if (fromGene.isActive && fromGene.gene is JsonPointerGene) {
-            val fromValue = (fromGene.gene as JsonPointerGene).getValueAsRawString()
-            parts.add("\"from\":\"$fromValue\"")
-        }
-
-        if (valueGene.isActive) {
-            val valueStr = valueGene.gene.getValueAsPrintableString(previousGenes, mode, targetFormat)
-            parts.add("\"value\":$valueStr")
+        // Determine which fields to include based on the operation type,
+        // not on isActive flags, which can be out of sync after child mutations.
+        when (opValue) {
+            "move", "copy" -> {
+                if (fromGene.gene is JsonPointerGene) {
+                    val fromValue = (fromGene.gene as JsonPointerGene).getValueAsRawString()
+                    parts.add("\"from\":\"$fromValue\"")
+                }
+            }
+            "add", "replace", "test" -> {
+                val valueStr = valueGene.gene.getValueAsPrintableString(previousGenes, mode, targetFormat)
+                parts.add("\"value\":$valueStr")
+            }
+            // "remove" needs neither from nor value
         }
 
         return "{${parts.joinToString(",")}}"

@@ -1017,7 +1017,8 @@ object GeneSamplerForTests {
 
     fun sampleJsonPatchGene(rand: Randomness): JsonPatchGene {
         val gene = JsonPatchGene("samplePatch", null)
-        gene.randomize(rand, false)
+        val op = sampleJsonPatchOperationGene(rand)
+        gene.addOperation(op)
         return gene
     }
 }
