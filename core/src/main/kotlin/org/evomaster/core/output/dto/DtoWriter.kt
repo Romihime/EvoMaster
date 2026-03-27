@@ -14,6 +14,7 @@ import org.evomaster.core.search.gene.collection.ArrayGene
 import org.evomaster.core.search.gene.collection.EnumGene
 import org.evomaster.core.search.gene.collection.FixedMapGene
 import org.evomaster.core.search.gene.collection.PairGene
+import org.evomaster.core.search.gene.jsonPatch.JsonPatchGene
 import org.evomaster.core.search.gene.datetime.DateGene
 import org.evomaster.core.search.gene.datetime.DateTimeGene
 import org.evomaster.core.search.gene.datetime.TimeGene
@@ -138,6 +139,8 @@ class DtoWriter(
     private fun isPrimitiveGene(gene: Gene): Boolean {
         return when (gene) {
             is StringGene, is IntegerGene, is LongGene, is DoubleGene, is FloatGene, is BooleanGene -> true
+            // JsonPatchGene serializes directly as a raw JSON string, no DTO needed
+            is JsonPatchGene -> true
             else -> false
         }
     }

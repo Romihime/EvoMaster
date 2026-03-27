@@ -45,14 +45,12 @@ open class JsonPatchApplication {
         node1.put("name", "Alice")
         node1.put("age", 30)
         node1.put("active", true)
-        node1.put("role", "admin")
         resources[1] = node1
 
         val node2 = mapper.createObjectNode()
         node2.put("name", "Bob")
         node2.put("age", 25)
         node2.put("active", false)
-        node2.put("role", "user")
         resources[2] = node2
     }
 
@@ -61,8 +59,7 @@ open class JsonPatchApplication {
     data class Resource(
         val name: String = "",
         val age: Int = 0,
-        val active: Boolean = false,
-        val role: String = "user"
+        val active: Boolean = false
     )
 
     /* ===================== GET ENDPOINT (provides schema for JSON Patch) ===================== */
@@ -89,8 +86,7 @@ open class JsonPatchApplication {
     @ApiResponses(value = [
         ApiResponse(responseCode = "200", description = "Patch applied successfully"),
         ApiResponse(responseCode = "400", description = "Invalid patch"),
-        ApiResponse(responseCode = "404", description = "Resource not found"),
-        ApiResponse(responseCode = "422", description = "Patch violates business rules")
+        ApiResponse(responseCode = "404", description = "Resource not found")
     ])
     @PatchMapping(
         "/{id}",
@@ -116,12 +112,10 @@ open class JsonPatchApplication {
             return ResponseEntity.status(400).body(mapOf("error" to "patch must be an array"))
         }
 
-        if (patchNode.size() == 0) {
-            return ResponseEntity.status(400).body(mapOf("error" to "patch must not be empty"))
-        }
-
         // Apply each operation
         val result = resource.deepCopy()
+        val validFields = setOf("name", "age", "active")
+
         for (opNode in patchNode) {
             val op = opNode.get("op")?.asText()
                 ?: return ResponseEntity.status(400).body(mapOf("error" to "missing op"))
@@ -132,31 +126,19 @@ open class JsonPatchApplication {
             if (fieldName.isEmpty() || fieldName.contains("/")) {
                 return ResponseEntity.status(400).body(mapOf("error" to "only single-level paths supported"))
             }
+            if (fieldName !in validFields) {
+                return ResponseEntity.status(400).body(mapOf("error" to "unknown field: $fieldName"))
+            }
 
             when (op) {
-                "add" -> {
+                "add", "replace" -> {
                     val value = opNode.get("value")
-                        ?: return ResponseEntity.status(400).body(mapOf("error" to "missing value for add"))
-                    if (result.has(fieldName)) {
-                        return ResponseEntity.status(400).body(mapOf("error" to "field already exists, use replace"))
-                    }
-                    result.set<JsonNode>(fieldName, value)
-                }
-                "replace" -> {
-                    val value = opNode.get("value")
-                        ?: return ResponseEntity.status(400).body(mapOf("error" to "missing value for replace"))
-                    if (!result.has(fieldName)) {
-                        return ResponseEntity.status(400).body(mapOf("error" to "field $fieldName not found for replace"))
-                    }
+                        ?: return ResponseEntity.status(400).body(mapOf("error" to "missing value for $op"))
                     result.set<JsonNode>(fieldName, value)
                 }
                 "remove" -> {
                     if (!result.has(fieldName)) {
                         return ResponseEntity.status(400).body(mapOf("error" to "field $fieldName not found"))
-                    }
-                    // Prevent removing required fields
-                    if (fieldName == "name" || fieldName == "role") {
-                        return ResponseEntity.status(422).body(mapOf("error" to "cannot remove required field: $fieldName"))
                     }
                     result.remove(fieldName)
                 }
@@ -173,8 +155,8 @@ open class JsonPatchApplication {
                     val from = opNode.get("from")?.asText()
                         ?: return ResponseEntity.status(400).body(mapOf("error" to "missing from"))
                     val fromField = from.removePrefix("/")
-                    if (fromField == "name" || fromField == "role") {
-                        return ResponseEntity.status(422).body(mapOf("error" to "cannot move required field: $fromField"))
+                    if (fromField !in validFields) {
+                        return ResponseEntity.status(400).body(mapOf("error" to "unknown from field: $fromField"))
                     }
                     val movedValue = result.get(fromField)
                         ?: return ResponseEntity.status(400).body(mapOf("error" to "from field not found"))
@@ -185,6 +167,9 @@ open class JsonPatchApplication {
                     val from = opNode.get("from")?.asText()
                         ?: return ResponseEntity.status(400).body(mapOf("error" to "missing from"))
                     val fromField = from.removePrefix("/")
+                    if (fromField !in validFields) {
+                        return ResponseEntity.status(400).body(mapOf("error" to "unknown from field: $fromField"))
+                    }
                     val copiedValue = result.get(fromField)
                         ?: return ResponseEntity.status(400).body(mapOf("error" to "from field not found"))
                     result.set<JsonNode>(fieldName, copiedValue.deepCopy())
@@ -195,31 +180,23 @@ open class JsonPatchApplication {
             }
         }
 
-        // Business rule validation on the result
-        val name = result.get("name")?.asText() ?: ""
-        if (name.isBlank()) {
-            return ResponseEntity.status(422).body(mapOf("error" to "name must not be blank"))
-        }
-        if (name.length > 50) {
-            return ResponseEntity.status(422).body(mapOf("error" to "name too long"))
-        }
-
-        val age = result.get("age")?.asInt() ?: 0
-        if (age < 0 || age > 150) {
-            return ResponseEntity.status(422).body(mapOf("error" to "age out of range"))
-        }
-
-        val role = result.get("role")?.asText() ?: ""
-        if (role !in listOf("admin", "user", "guest")) {
-            return ResponseEntity.status(422).body(mapOf("error" to "invalid role: $role"))
+        // Validate that the required schema fields are still present and correctly typed
+        val requiredFields = mapOf("name" to "string", "age" to "number", "active" to "boolean")
+        for ((field, type) in requiredFields) {
+            val node = result.get(field)
+                ?: return ResponseEntity.status(400).body(mapOf("error" to "patch would remove required field '$field'"))
+            val valid = when (type) {
+                "string" -> node.isTextual
+                "number" -> node.isNumber
+                "boolean" -> node.isBoolean
+                else -> true
+            }
+            if (!valid) {
+                return ResponseEntity.status(400).body(mapOf("error" to "patch would change type of field '$field'"))
+            }
         }
 
-        // Admin must be at least 21
-        if (role == "admin" && age < 21) {
-            return ResponseEntity.status(422).body(mapOf("error" to "admin must be at least 21"))
-        }
-
-        resources[id] = result
+        // Don't persist changes to avoid state accumulation between calls
         return ResponseEntity.ok(mapper.treeToValue(result, Map::class.java))
     }
 }

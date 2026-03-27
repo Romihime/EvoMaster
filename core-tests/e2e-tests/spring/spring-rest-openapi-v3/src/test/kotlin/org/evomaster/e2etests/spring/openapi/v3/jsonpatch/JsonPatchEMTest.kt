@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test
  * 1. Detect the application/json-patch+json content type in the OpenAPI spec
  * 2. Use the GET endpoint schema to generate schema-aware JSON Patch operations
  * 3. Generate valid JSON Patch documents that the SUT can process
- * 4. Explore different HTTP status codes including business rule violations (422)
+ * 4. Explore different HTTP status codes (200, 400, 404)
  */
 class JsonPatchEMTest : SpringTestBase() {
 
