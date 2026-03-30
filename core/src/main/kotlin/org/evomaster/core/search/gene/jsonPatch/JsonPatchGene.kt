@@ -2,13 +2,6 @@ package org.evomaster.core.search.gene.jsonPatch
 
 import org.evomaster.core.output.OutputFormat
 import org.evomaster.core.search.gene.Gene
-import org.evomaster.core.search.gene.ObjectGene
-import org.evomaster.core.search.gene.collection.ArrayGene
-import org.evomaster.core.search.gene.numeric.DoubleGene
-import org.evomaster.core.search.gene.numeric.FloatGene
-import org.evomaster.core.search.gene.numeric.IntegerGene
-import org.evomaster.core.search.gene.numeric.LongGene
-import org.evomaster.core.search.gene.BooleanGene
 import org.evomaster.core.search.gene.root.CompositeGene
 import org.evomaster.core.search.gene.string.StringGene
 import org.evomaster.core.search.gene.utils.GeneUtils
@@ -72,12 +65,12 @@ class JsonPatchGene(
             "move" -> {
                 val fromGene = JsonPointerGene("from", emptyList(), resourceSchema)
                 fromGene.randomize(randomness, false)
-                JsonPatchOperationGene.createMove(fromGene, pathGene)
+                JsonPatchOperationGene.createMove(fromGene, pathGene, resourceSchema)
             }
             "copy" -> {
                 val fromGene = JsonPointerGene("from", emptyList(), resourceSchema)
                 fromGene.randomize(randomness, false)
-                JsonPatchOperationGene.createCopy(fromGene, pathGene)
+                JsonPatchOperationGene.createCopy(fromGene, pathGene, resourceSchema)
             }
             "test" -> {
                 val value = createValueForPath(pathGene, randomness)
@@ -92,54 +85,10 @@ class JsonPatchGene(
 
     /**
      * Create a value gene that matches the type of the field pointed to by the path.
-     * If resourceSchema is available, resolves the path to determine the correct type.
-     * Falls back to a random type if schema is unavailable or path cannot be resolved.
+     * Delegates to the shared helper in JsonPatchOperationGene.
      */
     private fun createValueForPath(pathGene: JsonPointerGene, randomness: Randomness): Gene {
-        val resolvedGene = JsonPointerGene.resolveGeneAtPath(resourceSchema, pathGene.segments)
-
-        if (resolvedGene != null) {
-            return createValueMatchingType(resolvedGene, randomness)
-        }
-
-        return createRandomValueGene(randomness)
-    }
-
-    /**
-     * Create a value gene that matches the type of the given gene from the schema.
-     */
-    private fun createValueMatchingType(schemaGene: Gene, randomness: Randomness): Gene {
-        return when (schemaGene) {
-            is StringGene -> StringGene("value", randomness.nextWordString(1, 20))
-            is IntegerGene -> IntegerGene("value", randomness.nextInt(0, 1000))
-            is LongGene -> LongGene("value", randomness.nextInt(0, 1000).toLong())
-            is DoubleGene -> DoubleGene("value", randomness.nextDouble())
-            is FloatGene -> FloatGene("value", randomness.nextDouble().toFloat())
-            is BooleanGene -> BooleanGene("value", randomness.nextBoolean())
-            is ObjectGene -> {
-                val copy = schemaGene.copy() as ObjectGene
-                copy.randomize(randomness, false)
-                copy
-            }
-            is ArrayGene<*> -> {
-                val copy = schemaGene.copy() as ArrayGene<*>
-                copy.randomize(randomness, false)
-                copy
-            }
-            else -> createRandomValueGene(randomness)
-        }
-    }
-
-    /**
-     * Create a random value gene when no schema information is available.
-     */
-    private fun createRandomValueGene(randomness: Randomness): Gene {
-        return when (randomness.nextInt(0, 3)) {
-            0 -> StringGene("value", randomness.nextWordString(1, 20))
-            1 -> IntegerGene("value", randomness.nextInt(0, 1000))
-            2 -> BooleanGene("value", randomness.nextBoolean())
-            else -> DoubleGene("value", randomness.nextDouble())
-        }
+        return JsonPatchOperationGene.createValueForPath(pathGene, resourceSchema, randomness)
     }
 
     fun addOperation(operation: JsonPatchOperationGene) {

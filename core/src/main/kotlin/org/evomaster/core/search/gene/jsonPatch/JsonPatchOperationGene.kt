@@ -2,7 +2,14 @@ package org.evomaster.core.search.gene.jsonPatch
 
 import org.evomaster.core.output.OutputFormat
 import org.evomaster.core.search.gene.Gene
+import org.evomaster.core.search.gene.ObjectGene
+import org.evomaster.core.search.gene.BooleanGene
+import org.evomaster.core.search.gene.collection.ArrayGene
 import org.evomaster.core.search.gene.collection.EnumGene
+import org.evomaster.core.search.gene.numeric.DoubleGene
+import org.evomaster.core.search.gene.numeric.FloatGene
+import org.evomaster.core.search.gene.numeric.IntegerGene
+import org.evomaster.core.search.gene.numeric.LongGene
 import org.evomaster.core.search.gene.root.CompositeFixedGene
 import org.evomaster.core.search.gene.string.StringGene
 import org.evomaster.core.search.gene.utils.GeneUtils
@@ -37,7 +44,8 @@ class JsonPatchOperationGene(
     opGene: EnumGene<String>,
     pathGene: JsonPointerGene,
     fromGene: OptionalGene,
-    valueGene: OptionalGene
+    valueGene: OptionalGene,
+    val resourceSchema: Gene? = null
 ) : CompositeFixedGene(name, listOf(opGene, pathGene, fromGene, valueGene)) {
 
     val opGene: EnumGene<String>
@@ -69,7 +77,7 @@ class JsonPatchOperationGene(
             val from = OptionalGene("from", JsonPointerGene("from", emptyList(), resourceSchema), isActive = false)
             val value = OptionalGene("value", valueGene, isActive = true)
 
-            return JsonPatchOperationGene("addOp", op, pathGene, from, value)
+            return JsonPatchOperationGene("addOp", op, pathGene, from, value, resourceSchema)
         }
 
         fun createRemove(pathGene: JsonPointerGene, resourceSchema: Gene? = null): JsonPatchOperationGene {
@@ -77,7 +85,7 @@ class JsonPatchOperationGene(
             val from = OptionalGene("from", JsonPointerGene("from", emptyList(), resourceSchema), isActive = false)
             val value = OptionalGene("value", StringGene("value"), isActive = false)
 
-            return JsonPatchOperationGene("removeOp", op, pathGene, from, value)
+            return JsonPatchOperationGene("removeOp", op, pathGene, from, value, resourceSchema)
         }
 
         fun createReplace(pathGene: JsonPointerGene, valueGene: Gene, resourceSchema: Gene? = null): JsonPatchOperationGene {
@@ -85,23 +93,23 @@ class JsonPatchOperationGene(
             val from = OptionalGene("from", JsonPointerGene("from", emptyList(), resourceSchema), isActive = false)
             val value = OptionalGene("value", valueGene, isActive = true)
 
-            return JsonPatchOperationGene("replaceOp", op, pathGene, from, value)
+            return JsonPatchOperationGene("replaceOp", op, pathGene, from, value, resourceSchema)
         }
 
-        fun createMove(fromGene: JsonPointerGene, pathGene: JsonPointerGene): JsonPatchOperationGene {
+        fun createMove(fromGene: JsonPointerGene, pathGene: JsonPointerGene, resourceSchema: Gene? = null): JsonPatchOperationGene {
             val op = EnumGene("op", VALID_OPS, opIndex("move"))
             val from = OptionalGene("from", fromGene, isActive = true)
             val value = OptionalGene("value", StringGene("value"), isActive = false)
 
-            return JsonPatchOperationGene("moveOp", op, pathGene, from, value)
+            return JsonPatchOperationGene("moveOp", op, pathGene, from, value, resourceSchema)
         }
 
-        fun createCopy(fromGene: JsonPointerGene, pathGene: JsonPointerGene): JsonPatchOperationGene {
+        fun createCopy(fromGene: JsonPointerGene, pathGene: JsonPointerGene, resourceSchema: Gene? = null): JsonPatchOperationGene {
             val op = EnumGene("op", VALID_OPS, opIndex("copy"))
             val from = OptionalGene("from", fromGene, isActive = true)
             val value = OptionalGene("value", StringGene("value"), isActive = false)
 
-            return JsonPatchOperationGene("copyOp", op, pathGene, from, value)
+            return JsonPatchOperationGene("copyOp", op, pathGene, from, value, resourceSchema)
         }
 
         fun createTest(pathGene: JsonPointerGene, valueGene: Gene, resourceSchema: Gene? = null): JsonPatchOperationGene {
@@ -109,7 +117,50 @@ class JsonPatchOperationGene(
             val from = OptionalGene("from", JsonPointerGene("from", emptyList(), resourceSchema), isActive = false)
             val value = OptionalGene("value", valueGene, isActive = true)
 
-            return JsonPatchOperationGene("testOp", op, pathGene, from, value)
+            return JsonPatchOperationGene("testOp", op, pathGene, from, value, resourceSchema)
+        }
+
+        /**
+         * Create a value gene matching the type at the given path in the schema.
+         * Falls back to a random type if schema is unavailable or path cannot be resolved.
+         */
+        internal fun createValueForPath(pathGene: JsonPointerGene, resourceSchema: Gene?, randomness: Randomness): Gene {
+            val resolvedGene = JsonPointerGene.resolveGeneAtPath(resourceSchema, pathGene.segments)
+            if (resolvedGene != null) {
+                return createValueMatchingType(resolvedGene, randomness)
+            }
+            return createRandomValueGene(randomness)
+        }
+
+        private fun createValueMatchingType(schemaGene: Gene, randomness: Randomness): Gene {
+            return when (schemaGene) {
+                is StringGene -> StringGene("value", randomness.nextWordString(1, 20))
+                is IntegerGene -> IntegerGene("value", randomness.nextInt(0, 1000))
+                is LongGene -> LongGene("value", randomness.nextInt(0, 1000).toLong())
+                is DoubleGene -> DoubleGene("value", randomness.nextDouble())
+                is FloatGene -> FloatGene("value", randomness.nextDouble().toFloat())
+                is BooleanGene -> BooleanGene("value", randomness.nextBoolean())
+                is ObjectGene -> {
+                    val copy = schemaGene.copy() as ObjectGene
+                    copy.randomize(randomness, false)
+                    copy
+                }
+                is ArrayGene<*> -> {
+                    val copy = schemaGene.copy() as ArrayGene<*>
+                    copy.randomize(randomness, false)
+                    copy
+                }
+                else -> createRandomValueGene(randomness)
+            }
+        }
+
+        private fun createRandomValueGene(randomness: Randomness): Gene {
+            return when (randomness.nextInt(0, 3)) {
+                0 -> StringGene("value", randomness.nextWordString(1, 20))
+                1 -> IntegerGene("value", randomness.nextInt(0, 1000))
+                2 -> BooleanGene("value", randomness.nextBoolean())
+                else -> DoubleGene("value", randomness.nextDouble())
+            }
         }
     }
 
@@ -145,7 +196,8 @@ class JsonPatchOperationGene(
             opGene.copy() as EnumGene<String>,
             pathGene.copy() as JsonPointerGene,
             fromGene.copy() as OptionalGene,
-            valueGene.copy() as OptionalGene
+            valueGene.copy() as OptionalGene,
+            resourceSchema
         )
     }
 

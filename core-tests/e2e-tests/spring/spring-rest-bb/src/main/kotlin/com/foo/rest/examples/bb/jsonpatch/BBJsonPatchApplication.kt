@@ -205,7 +205,9 @@ open class BBJsonPatchApplication {
             }
         }
 
-        // Don't persist changes to avoid state accumulation between calls
+        // In BB mode, generated tests run without state reset between calls.
+        // Persisting changes would break GET assertions in generated test suites.
+        // The WB variant (JsonPatchApplication) does persist, as its controller resets state.
         CoveredTargets.cover("JSONPATCH_APPLIED")
         return ResponseEntity.ok(mapper.treeToValue(result, Map::class.java))
     }

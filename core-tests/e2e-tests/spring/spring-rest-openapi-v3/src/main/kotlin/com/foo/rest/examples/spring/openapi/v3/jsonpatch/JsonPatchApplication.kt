@@ -196,7 +196,7 @@ open class JsonPatchApplication {
             }
         }
 
-        // Don't persist changes to avoid state accumulation between calls
+        resources[id] = result
         return ResponseEntity.ok(mapper.treeToValue(result, Map::class.java))
     }
 }
