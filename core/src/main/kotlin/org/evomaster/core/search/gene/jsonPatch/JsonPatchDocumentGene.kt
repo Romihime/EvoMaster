@@ -26,13 +26,13 @@ import org.slf4j.LoggerFactory
  *
  * @param resourceSchema Optional schema of the target resource for intelligent path generation
  */
-class JsonPatchGene(
+class JsonPatchDocumentGene(
     name: String,
     val resourceSchema: Gene? = null
 ) : CompositeGene(name, mutableListOf()) {
 
     companion object {
-        private val log: Logger = LoggerFactory.getLogger(JsonPatchGene::class.java)
+        private val log: Logger = LoggerFactory.getLogger(JsonPatchDocumentGene::class.java)
 
         const val MIN_OPERATIONS = 1
         const val DEFAULT_MAX_OPERATIONS = 10
@@ -52,43 +52,35 @@ class JsonPatchGene(
 
         return when (opType) {
             "add" -> {
-                val value = createValueForPath(pathGene, randomness)
-                JsonPatchOperationGene.createAdd(pathGene, value, resourceSchema)
+                val value = JsonPatchOperationGene.createValueForPath(pathGene, resourceSchema, randomness)
+                AddOperationGene(pathGene, value, resourceSchema)
             }
             "remove" -> {
-                JsonPatchOperationGene.createRemove(pathGene, resourceSchema)
+                RemoveOperationGene(pathGene, resourceSchema)
             }
             "replace" -> {
-                val value = createValueForPath(pathGene, randomness)
-                JsonPatchOperationGene.createReplace(pathGene, value, resourceSchema)
+                val value = JsonPatchOperationGene.createValueForPath(pathGene, resourceSchema, randomness)
+                ReplaceOperationGene(pathGene, value, resourceSchema)
             }
             "move" -> {
                 val fromGene = JsonPointerGene("from", emptyList(), resourceSchema)
                 fromGene.randomize(randomness, false)
-                JsonPatchOperationGene.createMove(fromGene, pathGene, resourceSchema)
+                MoveOperationGene(fromGene, pathGene, resourceSchema)
             }
             "copy" -> {
                 val fromGene = JsonPointerGene("from", emptyList(), resourceSchema)
                 fromGene.randomize(randomness, false)
-                JsonPatchOperationGene.createCopy(fromGene, pathGene, resourceSchema)
+                CopyOperationGene(fromGene, pathGene, resourceSchema)
             }
             "test" -> {
-                val value = createValueForPath(pathGene, randomness)
-                JsonPatchOperationGene.createTest(pathGene, value, resourceSchema)
+                val value = JsonPatchOperationGene.createValueForPath(pathGene, resourceSchema, randomness)
+                TestOperationGene(pathGene, value, resourceSchema)
             }
             else -> {
                 val value = StringGene("value", "default")
-                JsonPatchOperationGene.createAdd(pathGene, value, resourceSchema)
+                AddOperationGene(pathGene, value, resourceSchema)
             }
         }
-    }
-
-    /**
-     * Create a value gene that matches the type of the field pointed to by the path.
-     * Delegates to the shared helper in JsonPatchOperationGene.
-     */
-    private fun createValueForPath(pathGene: JsonPointerGene, randomness: Randomness): Gene {
-        return JsonPatchOperationGene.createValueForPath(pathGene, resourceSchema, randomness)
     }
 
     fun addOperation(operation: JsonPatchOperationGene) {
@@ -112,7 +104,7 @@ class JsonPatchGene(
     }
 
     override fun copyContent(): Gene {
-        val copy = JsonPatchGene(name, resourceSchema)
+        val copy = JsonPatchDocumentGene(name, resourceSchema)
         operations.forEach { op ->
             copy.addOperation(op.copy() as JsonPatchOperationGene)
         }
@@ -195,7 +187,7 @@ class JsonPatchGene(
     }
 
     override fun containsSameValueAs(other: Gene): Boolean {
-        if (other !is JsonPatchGene) {
+        if (other !is JsonPatchDocumentGene) {
             throw IllegalArgumentException("Invalid gene type ${other.javaClass}")
         }
 
@@ -209,7 +201,7 @@ class JsonPatchGene(
     }
 
     override fun unsafeCopyValueFrom(other: Gene): Boolean {
-        if (other !is JsonPatchGene) {
+        if (other !is JsonPatchDocumentGene) {
             return false
         }
 
@@ -227,7 +219,7 @@ class JsonPatchGene(
     }
 
     override fun unsafeSetFromStringValue(value: String): Boolean {
-        log.warn("unsafeSetFromStringValue not supported for JsonPatchGene")
+        log.warn("unsafeSetFromStringValue not supported for JsonPatchDocumentGene")
         return false
     }
 }

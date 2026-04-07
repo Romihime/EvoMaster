@@ -13,7 +13,7 @@ class GeneNumberOfGenesTest : AbstractGeneTest() {
             This number should not change, unless you explicitly add/remove any gene.
             if so, update this number accordingly
          */
-        assertEquals(91, geneClasses.size)
+        assertEquals(97, geneClasses.size)
     }
 
 }

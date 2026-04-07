@@ -50,7 +50,7 @@ import org.evomaster.core.search.gene.placeholder.LimitObjectGene
 import org.evomaster.core.search.gene.regex.RegexGene
 import org.evomaster.core.search.gene.string.Base64StringGene
 import org.evomaster.core.search.gene.string.StringGene
-import org.evomaster.core.search.gene.jsonPatch.JsonPatchGene
+import org.evomaster.core.search.gene.jsonPatch.JsonPatchDocumentGene
 import org.evomaster.core.search.gene.utils.GeneUtils
 import org.evomaster.core.search.service.Randomness
 import org.evomaster.core.search.gene.wrapper.NullableGene
@@ -750,7 +750,7 @@ object RestActionBuilderV3 {
                 }
 
                 val gene = possiblyOptional(
-                    JsonPatchGene("jsonPatchBody", resourceGene),
+                    JsonPatchDocumentGene("jsonPatchBody", resourceGene),
                     resolvedBody.required
                 )
 
@@ -759,7 +759,7 @@ object RestActionBuilderV3 {
                     .apply { this.description = description }
                 params.add(bodyParam)
 
-                messages.add("Added JsonPatchGene for $verb:$restPath")
+                messages.add("Added JsonPatchDocumentGene for $verb:$restPath")
                 return
             } catch (e: Exception) {
                 messages.add("Failed to handle JsonPatch for $verb:$restPath: ${e.message}, falling back to normal handling")

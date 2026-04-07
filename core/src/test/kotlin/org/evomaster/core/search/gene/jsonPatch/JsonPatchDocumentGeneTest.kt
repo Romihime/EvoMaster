@@ -8,22 +8,21 @@ import org.evomaster.core.search.service.Randomness
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
-class JsonPatchGeneTest {
+class JsonPatchDocumentGeneTest {
 
     @Test
     fun testNewPatchIsEmpty() {
-        val patch = JsonPatchGene("patch", null)
-        // Without init side-effects, a new patch starts empty
+        val patch = JsonPatchDocumentGene("patch", null)
         assertTrue(patch.operations.isEmpty())
     }
 
     @Test
     fun testSingleOperation() {
-        val patch = JsonPatchGene("patch", null)
+        val patch = JsonPatchDocumentGene("patch", null)
 
         val pathGene = JsonPointerGene("path", listOf(StringGene("s0", "a")))
         val valueGene = StringGene("value", "foo")
-        val operation = JsonPatchOperationGene.createAdd(pathGene, valueGene)
+        val operation = AddOperationGene(pathGene, valueGene)
 
         patch.addOperation(operation)
 
@@ -37,15 +36,15 @@ class JsonPatchGeneTest {
 
     @Test
     fun testMultipleOperations() {
-        val patch = JsonPatchGene("patch", null)
+        val patch = JsonPatchDocumentGene("patch", null)
 
         val path1 = JsonPointerGene("p1", listOf(StringGene("s", "a")))
         val path2 = JsonPointerGene("p2", listOf(StringGene("s", "b")))
         val path3 = JsonPointerGene("p3", listOf(StringGene("s", "c")))
 
-        patch.addOperation(JsonPatchOperationGene.createAdd(path1, StringGene("v", "1")))
-        patch.addOperation(JsonPatchOperationGene.createRemove(path2))
-        patch.addOperation(JsonPatchOperationGene.createReplace(path3, IntegerGene("v", 42)))
+        patch.addOperation(AddOperationGene(path1, StringGene("v", "1")))
+        patch.addOperation(RemoveOperationGene(path2))
+        patch.addOperation(ReplaceOperationGene(path3, IntegerGene("v", 42)))
 
         val json = patch.getValueAsPrintableString()
 
@@ -59,15 +58,15 @@ class JsonPatchGeneTest {
 
     @Test
     fun testRandomize() {
-        val patch = JsonPatchGene("patch", null)
+        val patch = JsonPatchDocumentGene("patch", null)
         val randomness = Randomness()
         randomness.updateSeed(42)
 
         patch.randomize(randomness, false)
 
         assertTrue(patch.operations.isNotEmpty())
-        assertTrue(patch.operations.size >= JsonPatchGene.MIN_OPERATIONS)
-        assertTrue(patch.operations.size <= JsonPatchGene.DEFAULT_MAX_OPERATIONS)
+        assertTrue(patch.operations.size >= JsonPatchDocumentGene.MIN_OPERATIONS)
+        assertTrue(patch.operations.size <= JsonPatchDocumentGene.DEFAULT_MAX_OPERATIONS)
 
         val json = patch.getValueAsPrintableString()
         assertTrue(json.startsWith("["))
@@ -76,15 +75,15 @@ class JsonPatchGeneTest {
 
     @Test
     fun testCopy() {
-        val patch = JsonPatchGene("patch", null)
+        val patch = JsonPatchDocumentGene("patch", null)
 
         val path1 = JsonPointerGene("p1", listOf(StringGene("s", "a")))
         val path2 = JsonPointerGene("p2", listOf(StringGene("s", "b")))
 
-        patch.addOperation(JsonPatchOperationGene.createAdd(path1, StringGene("v", "1")))
-        patch.addOperation(JsonPatchOperationGene.createRemove(path2))
+        patch.addOperation(AddOperationGene(path1, StringGene("v", "1")))
+        patch.addOperation(RemoveOperationGene(path2))
 
-        val copy = patch.copy() as JsonPatchGene
+        val copy = patch.copy() as JsonPatchDocumentGene
 
         assertEquals(patch.getValueAsPrintableString(), copy.getValueAsPrintableString())
         assertNotSame(patch, copy)
@@ -93,43 +92,43 @@ class JsonPatchGeneTest {
 
     @Test
     fun testContainsSameValueAs() {
-        val patch1 = JsonPatchGene("p1", null)
-        val patch2 = JsonPatchGene("p2", null)
+        val patch1 = JsonPatchDocumentGene("p1", null)
+        val patch2 = JsonPatchDocumentGene("p2", null)
 
         val path = JsonPointerGene("path", listOf(StringGene("s", "a")))
         val value = StringGene("value", "foo")
 
-        patch1.addOperation(JsonPatchOperationGene.createAdd(path.copy() as JsonPointerGene, value.copy() as StringGene))
-        patch2.addOperation(JsonPatchOperationGene.createAdd(path.copy() as JsonPointerGene, value.copy() as StringGene))
+        patch1.addOperation(AddOperationGene(path.copy() as JsonPointerGene, value.copy() as StringGene))
+        patch2.addOperation(AddOperationGene(path.copy() as JsonPointerGene, value.copy() as StringGene))
 
         assertTrue(patch1.containsSameValueAs(patch2))
     }
 
     @Test
     fun testContainsSameValueAsDifferentSize() {
-        val patch1 = JsonPatchGene("p1", null)
-        val patch2 = JsonPatchGene("p2", null)
+        val patch1 = JsonPatchDocumentGene("p1", null)
+        val patch2 = JsonPatchDocumentGene("p2", null)
 
         val path = JsonPointerGene("path", listOf(StringGene("s", "a")))
 
-        patch1.addOperation(JsonPatchOperationGene.createRemove(path.copy() as JsonPointerGene))
-        patch2.addOperation(JsonPatchOperationGene.createRemove(path.copy() as JsonPointerGene))
-        patch2.addOperation(JsonPatchOperationGene.createRemove(path.copy() as JsonPointerGene))
+        patch1.addOperation(RemoveOperationGene(path.copy() as JsonPointerGene))
+        patch2.addOperation(RemoveOperationGene(path.copy() as JsonPointerGene))
+        patch2.addOperation(RemoveOperationGene(path.copy() as JsonPointerGene))
 
         assertFalse(patch1.containsSameValueAs(patch2))
     }
 
     @Test
     fun testRemoveOperation() {
-        val patch = JsonPatchGene("patch", null)
+        val patch = JsonPatchDocumentGene("patch", null)
 
         val path1 = JsonPointerGene("p1", listOf(StringGene("s", "a")))
         val path2 = JsonPointerGene("p2", listOf(StringGene("s", "b")))
         val path3 = JsonPointerGene("p3", listOf(StringGene("s", "c")))
 
-        patch.addOperation(JsonPatchOperationGene.createRemove(path1))
-        patch.addOperation(JsonPatchOperationGene.createRemove(path2))
-        patch.addOperation(JsonPatchOperationGene.createRemove(path3))
+        patch.addOperation(RemoveOperationGene(path1))
+        patch.addOperation(RemoveOperationGene(path2))
+        patch.addOperation(RemoveOperationGene(path3))
 
         assertEquals(3, patch.operations.size)
 
@@ -140,23 +139,23 @@ class JsonPatchGeneTest {
 
     @Test
     fun testComplexPatch() {
-        val patch = JsonPatchGene("patch", null)
+        val patch = JsonPatchDocumentGene("patch", null)
 
-        patch.addOperation(JsonPatchOperationGene.createAdd(
+        patch.addOperation(AddOperationGene(
             JsonPointerGene("p1", listOf(StringGene("s", "name"))),
             StringGene("v", "John")
         ))
 
-        patch.addOperation(JsonPatchOperationGene.createReplace(
+        patch.addOperation(ReplaceOperationGene(
             JsonPointerGene("p2", listOf(StringGene("s", "age"))),
             IntegerGene("v", 30)
         ))
 
-        patch.addOperation(JsonPatchOperationGene.createRemove(
+        patch.addOperation(RemoveOperationGene(
             JsonPointerGene("p3", listOf(StringGene("s", "temp")))
         ))
 
-        patch.addOperation(JsonPatchOperationGene.createMove(
+        patch.addOperation(MoveOperationGene(
             JsonPointerGene("from", listOf(StringGene("s", "old"))),
             JsonPointerGene("to", listOf(StringGene("s", "new")))
         ))
@@ -175,42 +174,39 @@ class JsonPatchGeneTest {
 
     @Test
     fun testValidJsonStructure() {
-        val patch = JsonPatchGene("patch", null)
+        val patch = JsonPatchDocumentGene("patch", null)
 
-        patch.addOperation(JsonPatchOperationGene.createAdd(
+        patch.addOperation(AddOperationGene(
             JsonPointerGene("p", listOf(StringGene("s", "test"))),
             StringGene("v", "value")
         ))
 
         val json = patch.getValueAsPrintableString()
-
-        // Should be valid JSON array syntax
         assertTrue(json.matches(Regex("\\[\\{.*\\}\\]")))
     }
 
     @Test
     fun testMutationWeightAtLeastOne() {
-        val patch = JsonPatchGene("patch", null)
-        // Even with no operations, weight should be at least 1.0
+        val patch = JsonPatchDocumentGene("patch", null)
         assertTrue(patch.mutationWeight() >= 1.0)
     }
 
     @Test
     fun testEmptyPatchPrintsEmptyArray() {
-        val patch = JsonPatchGene("patch", null)
+        val patch = JsonPatchDocumentGene("patch", null)
         assertEquals("[]", patch.getValueAsPrintableString())
     }
 
     @Test
     fun testCopyPreservesOperations() {
-        val patch = JsonPatchGene("patch", null)
+        val patch = JsonPatchDocumentGene("patch", null)
 
         val randomness = Randomness()
         randomness.updateSeed(123)
         patch.randomize(randomness, false)
 
         val originalJson = patch.getValueAsPrintableString()
-        val copy = patch.copy() as JsonPatchGene
+        val copy = patch.copy() as JsonPatchDocumentGene
         val copyJson = copy.getValueAsPrintableString()
 
         assertEquals(originalJson, copyJson)
@@ -219,11 +215,11 @@ class JsonPatchGeneTest {
 
     @Test
     fun testUnsafeCopyValueFrom() {
-        val patch1 = JsonPatchGene("p1", null)
-        val patch2 = JsonPatchGene("p2", null)
+        val patch1 = JsonPatchDocumentGene("p1", null)
+        val patch2 = JsonPatchDocumentGene("p2", null)
 
         val path = JsonPointerGene("path", listOf(StringGene("s", "x")))
-        patch1.addOperation(JsonPatchOperationGene.createAdd(path, StringGene("v", "y")))
+        patch1.addOperation(AddOperationGene(path, StringGene("v", "y")))
 
         patch2.unsafeCopyValueFrom(patch1)
 
@@ -250,7 +246,7 @@ class JsonPatchGeneTest {
     @Test
     fun testRandomizeWithSchemaUsesFieldNames() {
         val schema = createSampleSchema()
-        val patch = JsonPatchGene("patch", schema)
+        val patch = JsonPatchDocumentGene("patch", schema)
         val randomness = Randomness()
         randomness.updateSeed(42)
 
@@ -272,7 +268,7 @@ class JsonPatchGeneTest {
 
     @Test
     fun testRandomizeCanProduceUpToMaxOperations() {
-        val patch = JsonPatchGene("patch", null)
+        val patch = JsonPatchDocumentGene("patch", null)
         val randomness = Randomness()
 
         var maxFound = 0
@@ -285,16 +281,16 @@ class JsonPatchGeneTest {
         }
 
         assertTrue(maxFound > 1,
-            "Expected randomize to produce varying operation counts up to ${JsonPatchGene.DEFAULT_MAX_OPERATIONS}, " +
+            "Expected randomize to produce varying operation counts up to ${JsonPatchDocumentGene.DEFAULT_MAX_OPERATIONS}, " +
                     "but max found was $maxFound")
-        assertTrue(maxFound <= JsonPatchGene.DEFAULT_MAX_OPERATIONS,
-            "Expected at most ${JsonPatchGene.DEFAULT_MAX_OPERATIONS} operations, but found $maxFound")
+        assertTrue(maxFound <= JsonPatchDocumentGene.DEFAULT_MAX_OPERATIONS,
+            "Expected at most ${JsonPatchDocumentGene.DEFAULT_MAX_OPERATIONS} operations, but found $maxFound")
     }
 
     @Test
     fun testRandomizeWithSchemaProducesNonEmptyOperations() {
         val schema = createSampleSchema()
-        val patch = JsonPatchGene("patch", schema)
+        val patch = JsonPatchDocumentGene("patch", schema)
         val randomness = Randomness()
         randomness.updateSeed(99)
 
@@ -304,5 +300,27 @@ class JsonPatchGeneTest {
         val json = patch.getValueAsPrintableString()
         assertTrue(json.startsWith("["))
         assertTrue(json.endsWith("]"))
+    }
+
+    @Test
+    fun testRandomizeProducesAllOperationTypes() {
+        val patch = JsonPatchDocumentGene("patch", null)
+        val randomness = Randomness()
+
+        val operationTypes = mutableSetOf<String>()
+        for (seed in 0L..200L) {
+            randomness.updateSeed(seed)
+            patch.randomize(randomness, false)
+            for (op in patch.operations) {
+                operationTypes.add(op.operationName())
+            }
+        }
+
+        assertTrue(operationTypes.contains("add"), "Expected add operations")
+        assertTrue(operationTypes.contains("remove"), "Expected remove operations")
+        assertTrue(operationTypes.contains("replace"), "Expected replace operations")
+        assertTrue(operationTypes.contains("move"), "Expected move operations")
+        assertTrue(operationTypes.contains("copy"), "Expected copy operations")
+        assertTrue(operationTypes.contains("test"), "Expected test operations")
     }
 }

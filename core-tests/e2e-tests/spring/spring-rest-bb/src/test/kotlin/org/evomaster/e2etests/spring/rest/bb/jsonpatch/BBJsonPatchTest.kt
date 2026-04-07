@@ -44,9 +44,10 @@ class BBJsonPatchTest : SpringTestBase() {
             assertHasAtLeastOne(solution, HttpVerb.GET, 200, "/api/jsonpatch/{id}", null)
             assertHasAtLeastOne(solution, HttpVerb.GET, 404, "/api/jsonpatch/{id}", null)
 
-            /* PATCH endpoint: at least a successful application and a 400 */
+            /* PATCH endpoint: at least a successful application, a 400, and a 409 (test fail) */
             assertHasAtLeastOne(solution, HttpVerb.PATCH, 200, "/api/jsonpatch/{id}", null)
             assertHasAtLeastOne(solution, HttpVerb.PATCH, 400, "/api/jsonpatch/{id}", null)
+            assertHasAtLeastOne(solution, HttpVerb.PATCH, 409, "/api/jsonpatch/{id}", null)
         }
     }
 }

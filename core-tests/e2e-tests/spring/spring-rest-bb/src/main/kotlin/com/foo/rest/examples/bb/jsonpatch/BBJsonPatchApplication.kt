@@ -90,7 +90,8 @@ open class BBJsonPatchApplication {
     @ApiResponses(value = [
         ApiResponse(responseCode = "200", description = "Patch applied successfully"),
         ApiResponse(responseCode = "400", description = "Invalid patch"),
-        ApiResponse(responseCode = "404", description = "Resource not found")
+        ApiResponse(responseCode = "404", description = "Resource not found"),
+        ApiResponse(responseCode = "409", description = "JSON Patch test operation failed")
     ])
     @PatchMapping(
         "/{id}",
@@ -155,7 +156,7 @@ open class BBJsonPatchApplication {
                         ?: return ResponseEntity.status(400).body(mapOf("error" to "field $fieldName not found"))
                     if (current != value) {
                         CoveredTargets.cover("JSONPATCH_TEST_FAIL")
-                        return ResponseEntity.status(400).body(mapOf("error" to "test failed"))
+                        return ResponseEntity.status(409).body(mapOf("error" to "test failed"))
                     }
                 }
                 "move" -> {
