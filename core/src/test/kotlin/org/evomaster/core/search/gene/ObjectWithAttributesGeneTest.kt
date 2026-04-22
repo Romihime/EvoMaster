@@ -39,9 +39,9 @@ class ObjectWithAttributesGeneTest {
         val actual = person.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
         val expected =
             "<parent attrib1=\"true\">" +
-                "<child1 attrib2=\"-1\" attrib3=\"bar\">42</child1>" +
-                "<child2>foo</child2>" +
-            "</parent>"
+                    "<child1 attrib2=\"-1\" attrib3=\"bar\">42</child1>" +
+                    "<child2>foo</child2>" +
+                    "</parent>"
         Assertions.assertEquals(expected, actual)
     }
 
@@ -200,16 +200,16 @@ class ObjectWithAttributesGeneTest {
         val actual = root.getValueAsPrintableString(mode = GeneUtils.EscapeMode.XML)
         val expected =
             "<root id=\"root1\">" +
-                "<device>" +
+                    "<device>" +
                     "<model>XPhone</model>" +
                     "<location country=\"AR\">" +
-                        "<gps>" +
-                            "<lat>12</lat>" +
-                            "<lon>34</lon>" +
-                        "</gps>" +
+                    "<gps>" +
+                    "<lat>12</lat>" +
+                    "<lon>34</lon>" +
+                    "</gps>" +
                     "</location>" +
-                "</device>" +
-            "</root>"
+                    "</device>" +
+                    "</root>"
         Assertions.assertEquals(expected, actual)
     }
 
@@ -243,12 +243,12 @@ class ObjectWithAttributesGeneTest {
             "<device>" +
                     "<model>XPhone</model>" +
                     "<location country=\"AR\">" +
-                        "<gps>" +
-                            "<lat>12</lat>" +
-                            "<lon>34</lon>" +
-                        "</gps>" +
+                    "<gps>" +
+                    "<lat>12</lat>" +
+                    "<lon>34</lon>" +
+                    "</gps>" +
                     "</location>" +
-            "</device>"
+                    "</device>"
         Assertions.assertEquals(expected, actual)
     }
 
@@ -352,16 +352,16 @@ class ObjectWithAttributesGeneTest {
             "<project>" +
                     "<code>PRJ-001</code>" +
                     "<members>" +
-                        "<member id=\"M001\">" +
-                            "<name>Alice</name>" +
-                            "<age>25</age>" +
-                        "</member>" +
-                        "<member id=\"M002\">" +
-                            "<name>Bob</name>" +
-                            "<age>35</age>" +
-                        "</member>" +
+                    "<member id=\"M001\">" +
+                    "<name>Alice</name>" +
+                    "<age>25</age>" +
+                    "</member>" +
+                    "<member id=\"M002\">" +
+                    "<name>Bob</name>" +
+                    "<age>35</age>" +
+                    "</member>" +
                     "</members>" +
-            "</project>"
+                    "</project>"
         Assertions.assertEquals(expected, actual)
     }
 
@@ -467,9 +467,77 @@ class ObjectWithAttributesGeneTest {
         assertFalse(withAttrs.containsSameValueAs(plain))
     }
 
+    // --- unsafeCopyValueFrom tests ---
+
+    @Test
+    fun testUnsafeCopyValueFrom_copiesAttributeNames() {
+        val gene1 = ObjectWithAttributesGene(
+            name = "node",
+            fixedFields = listOf(StringGene("id", "1"), StringGene("name", "Alice")),
+            isFixed = true,
+            attributeNames = setOf("id")
+        )
+
+        val gene2 = ObjectWithAttributesGene(
+            name = "node",
+            fixedFields = listOf(StringGene("id", "2"), StringGene("name", "Bob")),
+            isFixed = true,
+            attributeNames = setOf("name")
+        )
+
+        // Before copy, they have different attribute names
+        assertFalse(gene1.containsSameValueAs(gene2))
+
+        val result = gene1.unsafeCopyValueFrom(gene2)
+
+        assertTrue(result)
+        // Now gene1 should have the same attribute names as gene2 (and same values)
+        assertTrue(gene1.containsSameValueAs(gene2))
+    }
+
+    @Test
+    fun testUnsafeCopyValueFrom_fromPlainObjectGeneClearsAttributes() {
+        val gene1 = ObjectWithAttributesGene(
+            name = "node",
+            fixedFields = listOf(StringGene("id", "1"), StringGene("name", "Alice")),
+            isFixed = true,
+            attributeNames = setOf("id")
+        )
+
+        val plain = ObjectGene("node", listOf(StringGene("id", "3"), StringGene("name", "Charlie")))
+
+        val result = gene1.unsafeCopyValueFrom(plain)
+
+        assertTrue(result)
+        // gene1 should now have empty attributeNames and match plain ObjectGene
+        assertTrue(gene1.containsSameValueAs(plain))
+    }
+
+    @Test
+    fun testUnsafeCopyValueFrom_sameAttributesPreserved() {
+        val gene1 = ObjectWithAttributesGene(
+            name = "node",
+            fixedFields = listOf(StringGene("id", "1"), StringGene("name", "Alice")),
+            isFixed = true,
+            attributeNames = setOf("id")
+        )
+
+        val gene2 = ObjectWithAttributesGene(
+            name = "node",
+            fixedFields = listOf(StringGene("id", "2"), StringGene("name", "Bob")),
+            isFixed = true,
+            attributeNames = setOf("id")
+        )
+
+        val result = gene1.unsafeCopyValueFrom(gene2)
+
+        assertTrue(result)
+        assertTrue(gene1.containsSameValueAs(gene2))
+    }
+
     @Test
     fun testContainsSameValueAs_emptyAttributesVsPlainObjectGene() {
-        // When attributeNames is empty, ObjectWithAttributesGene produces the same XML as a 
+        // When attributeNames is empty, ObjectWithAttributesGene produces the same XML as a
         // plain ObjectGene, so containsSameValueAs should delegate to the parent and return true.
         val withNoAttrs = ObjectWithAttributesGene(
             name = "node",
